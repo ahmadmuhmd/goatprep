@@ -1,0 +1,26 @@
+:root{color-scheme:light}
+.theme-toggle{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex-shrink:0;background:#eee5ff;color:#5420ae;border:1px solid #c9b0ef;border-radius:14px;cursor:pointer}
+.theme-toggle:hover{background:#decaff}.theme-toggle:focus-visible{outline:3px solid #7628ed;outline-offset:3px}
+.sat-subjects>article:nth-child(2){border-top:4px solid #13827e}.sat-subjects>article:first-child{border-top:4px solid #7628ed}
+html[data-theme=dark]{color-scheme:dark;--text:#f5efff;--muted:#d0c2e1;--purple:#b88aff;--accent:#ad78ff;--border:#59436f;--surface:#30203f;--bg:#1e122c}
+html[data-theme=dark] body,html[data-theme=dark] .site-shell{background:#1e122c!important;color:#f5efff!important}
+html[data-theme=dark] :is(.site-header,.desktop-nav,.mobile-nav,.profile-menu,.glass,.lesson-card,.test-card,.review-card,.chat-panel,.sat-subjects article,.sat-overview,.stat-strip,.modal){background:#30203f!important;border-color:#59436f!important;box-shadow:none!important}
+html[data-theme=dark] :is(h1,h2,h3,h4,strong,label,.brand,.brand-light,.stat-strip strong){color:#f5efff!important}
+html[data-theme=dark] :is(p,small,.muted,.fine-print,.free-tag,.stat-strip span,.stat-strip small,.overview-heading span,.chat-heading span){color:#d8cce7!important}
+html[data-theme=dark] :is(.desktop-nav a,.mobile-nav a,.text-button,.eyebrow,.source-link){color:#d0acff!important}
+html[data-theme=dark] :is(.desktop-nav .active,.mobile-nav .active,.secondary,.theme-toggle,.suggestions button){background:#4b2d69!important;color:#fff!important;border-color:#83609e!important}
+html[data-theme=dark] :is(input,textarea,.worked-example,.chat-message.assistant,.quiz-option){background:#261633!important;color:#f5efff!important;border-color:#705481!important}
+html[data-theme=dark] :is(.primary,.send-button){background:#873cf1!important;color:white!important}
+html[data-theme=dark] .editorial-copy em{color:#c497ff!important}
+html[data-theme=dark] .hero-art{background:#fff;border-radius:20px;overflow:hidden}
+html[data-theme=dark] .logo-wrap{background:white!important}
+html[data-theme=dark] .site-footer{border-color:#59436f;color:#d8cce7}
+@media(max-width:600px){.profile-area{gap:8px}.theme-toggle{width:40px;height:40px}}
+
+html[data-theme=dark] :is(.editorial-copy,.feature-card,.chat-composer,.segmented,.quiz-feedback,.answer-pair,.chat-message,.domain-result,.answer-review details){background:#30203f!important;color:#f5efff!important;border-color:#59436f!important}
+html[data-theme=dark] :is(.page-intro h1 span,.feature-arrow,.feature-top,.test-number,.pill){color:#c497ff!important}
+html[data-theme=dark] :is(.segmented button,.quiz-option,.lesson-meta){color:#d8cce7!important}
+html[data-theme=dark] .segmented button.selected{background:#58317b!important;color:#fff!important}
+html[data-theme=dark] :is(.report-page,.break-screen){background:#1e122c;color:#f5efff}
+html[data-theme=dark] :is(input,textarea)::placeholder{color:#baa8cc}
+html[data-theme=dark] .domain-title>span{color:#c497ff}

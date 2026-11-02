@@ -1,0 +1,68 @@
+/* Final editorial direction: the supplied still life leads; clear type does the rest. */
+:root{--bg:#fff;--text:#39294a;--muted:#6e617b;--accent:#8651ac}
+body{font-size:18px;line-height:1.65;background:#fff}
+.site-shell{background:#fff;overflow-x:clip}
+.site-header{height:100px;max-width:1440px;padding:0 48px;border-bottom:1px solid #eee7f2;background:#ffffffd9}
+.brand{font-size:29px;letter-spacing:-1px;gap:13px}
+.logo-wrap{height:46px;width:46px;border:0;box-shadow:none;background:transparent}
+.desktop-nav{border:0;background:none;padding:0;gap:12px}
+.desktop-nav a{font-size:17px;padding:10px 15px;border-radius:10px;color:#6e557e}
+.desktop-nav a.active{background:#f3ecf8;color:#613880}
+.profile-area{gap:24px}.free-tag{font-size:16px}.avatar{width:44px;height:44px;font-size:18px}
+.main-content{max-width:1320px;padding:0 48px}
+.editorial-hero{padding:0 0 68px;text-align:center}
+.hero-art{width:100vw;position:relative;left:50%;transform:translateX(-50%);overflow:hidden;background:#f8f8f7}
+.hero-art img{display:block;width:100%;height:clamp(340px,36vw,620px);max-height:620px;object-fit:cover;object-position:center 48%;animation:still-life-enter 1s ease-out both}
+.editorial-copy{position:relative;margin:-75px auto 0;max-width:1100px;padding:0 24px;animation:soft-enter .7s ease-out both}
+.editorial-copy h1{font-family:Georgia,'Times New Roman',serif;font-size:clamp(42px,4.5vw,70px);line-height:1.2;font-weight:400;letter-spacing:-2px;color:#493459}
+.editorial-copy h1 em{font-weight:400;color:#8657a2}
+.editorial-copy>p{font-size:21px;line-height:1.7;margin:24px auto 30px;color:#756481}
+.editorial-copy .button-row{justify-content:center;gap:18px}
+.button{font-size:16px;min-height:52px;padding:15px 25px;border-radius:12px;gap:12px}
+.button.small{font-size:15px;min-height:44px;padding:11px 19px}
+.text-button{font-size:16px;gap:10px}
+.eyebrow{font-size:14px;letter-spacing:1px;font-weight:500;color:#9272a3}
+.stat-strip{padding:30px 0}.stat-strip strong{font-size:29px}.stat-strip span{font-size:16px;line-height:1.5}.stat-strip>div{gap:8px}
+.section-block{padding-top:72px}.section-heading{margin-bottom:30px}.section-heading h2{font-size:38px}.section-heading p{font-size:17px}.section-heading .eyebrow{margin-bottom:14px}
+.feature-card{min-height:270px;padding:30px;border-radius:20px;background:#faf7fd}
+.feature-top{margin-bottom:28px}.feature-top>span{font-size:16px}
+.feature-card h3{font-size:28px}.feature-card p{font-size:18px;line-height:1.65;max-width:95%;color:#74617e}
+.feature-arrow{bottom:20px;right:22px}
+.community-empty h3{font-size:27px}.community-empty p{font-size:18px}
+.review-card blockquote{font-size:24px}.review-author{font-size:18px}.review-card .muted{font-size:15px}
+.site-footer{max-width:1440px;padding:36px 48px 44px;align-items:flex-start}.site-footer .brand{font-size:25px}.site-footer p{font-size:16px}.site-footer>span{font-size:13px;max-width:370px}
+.page-intro h1{font-size:60px}.page-intro p{font-size:20px;max-width:720px}.page-intro .eyebrow{font-size:14px}
+.segmented button{font-size:17px}.search-input{font-size:17px;max-width:320px}
+.domain-title h2{font-size:29px}.domain-title>span{font-size:16px}
+.lesson-card{padding:28px}.lesson-meta{font-size:13px;letter-spacing:.8px}.lesson-card h3{font-size:25px}.lesson-card p{font-size:17px}
+.lesson-reader h1{font-size:52px}.lesson-lead{font-size:22px}.lesson-body h2{font-size:30px}.lesson-body p,.lesson-body li{font-size:19px}.worked-example p{font-size:23px}.worked-example>span:last-child{font-size:17px}.quiz-option{font-size:18px}
+.test-meta{font-size:16px;gap:24px}.test-card h3{font-size:28px}.test-card p{font-size:17px}.test-card .pill{font-size:13px;padding:5px 10px}.test-number{font-size:37px}.test-score span{font-size:15px}
+.history-row{font-size:18px}.history-row small{font-size:15px}
+.dashboard-score>span,.score-breakdown{font-size:16px}.dashboard-score p,.next-step p{font-size:18px}.next-step h3{font-size:29px}
+.chat-heading strong{font-size:20px}.chat-heading>div>span{font-size:16px}.chat-heading>.text-button{font-size:15px}
+.chat-welcome h3{font-size:30px}.chat-welcome p{font-size:18px}.suggestions button{font-size:16px;padding:14px}
+.chat-message>span{font-size:13px}.chat-message p{font-size:18px}.source-link{font-size:15px;padding:8px 12px}.chat-composer input{font-size:18px}
+.fine-print{font-size:14px}.review-form label{font-size:17px}.review-form small{font-size:14px}.review-form input,.review-form textarea{font-size:18px}
+.profile-menu p{font-size:15px}.profile-menu button{font-size:16px}.notice{font-size:16px}
+.report-score span,.report-score small{font-size:16px}.score-disclaimer{font-size:15px}
+.domain-result strong{font-size:18px}.domain-result span{font-size:16px}.answer-review summary strong{font-size:17px}.answer-review summary>span:nth-last-child(2){font-size:14px}.answer-pair{font-size:16px}
+@keyframes still-life-enter{from{opacity:.4;transform:scale(1.015)}to{opacity:1;transform:scale(1)}}
+@media(min-width:1700px){.hero-art img{max-height:620px}.editorial-copy{margin-top:-85px}}
+@media(max-width:1050px){.site-header{padding:0 28px}.desktop-nav{gap:2px}.desktop-nav a{font-size:16px;padding:10px 12px}.main-content{padding:0 30px}.editorial-copy{margin-top:-24px}.editorial-copy h1{font-size:51px}.stat-strip>div{padding:0 20px}.stat-strip span{font-size:15px}.feature-card{padding:24px}.feature-card h3{font-size:26px}.feature-card p{font-size:17px}}
+@media(max-width:760px){
+ body{font-size:17px}.site-header{height:82px;padding:0 20px}.brand{font-size:25px;gap:8px}.logo-wrap{height:40px;width:40px}.profile-area{gap:10px}.button.small{font-size:14px;padding:10px 16px}
+ .main-content{padding:0 22px}.editorial-hero{padding-bottom:40px}.hero-art{height:260px;background:#f7f7f6}.hero-art img{width:100%;height:100%;object-fit:contain;object-position:center;transform:scale(1)}
+ .editorial-copy{margin:-12px 0 0;padding:0}.editorial-copy h1{font-size:42px;line-height:1.13;letter-spacing:-1.2px}.editorial-copy h1 em{display:block;margin-top:7px}
+ .editorial-copy>p{font-size:18px;margin:22px 0 25px}.editorial-copy>p br{display:none}.editorial-copy .button-row{gap:12px;flex-direction:column}.editorial-copy .button{width:100%;font-size:16px;min-height:52px}
+ .stat-strip{gap:24px 0;padding:25px 0}.stat-strip>div{padding:0 15px}.stat-strip strong{font-size:25px}.stat-strip span{font-size:14px}
+ .section-block{padding-top:44px}.section-heading h2{font-size:31px}.section-heading .eyebrow{font-size:13px}.section-heading .text-button{font-size:16px}
+ .feature-card{min-height:240px;padding:26px}.feature-card h3{font-size:28px}.feature-card p{font-size:18px}.feature-top{margin-bottom:22px}
+ .community-empty h3{font-size:25px}.community-empty p{font-size:17px}.site-footer{padding:30px 22px 115px}.site-footer p{font-size:16px}.site-footer>span{font-size:13px}
+ .mobile-nav{bottom:10px;left:10px;right:10px;padding:8px 4px}.mobile-nav a{padding:6px 10px}.mobile-nav span{font-size:12px}.mobile-nav a svg{width:22px;height:22px}
+ .page-intro h1{font-size:43px}.page-intro p{font-size:18px}.segmented button{font-size:16px;padding:10px 12px}.search-input{max-width:none;font-size:17px}
+ .domain-title h2{font-size:25px}.lesson-card h3{font-size:23px}.lesson-card p{font-size:16px}.lesson-meta{font-size:12px}.lesson-reader h1{font-size:39px}.lesson-body p,.lesson-body li{font-size:18px}.lesson-body h2{font-size:27px}.quiz-option{font-size:17px}.worked-example p{font-size:21px}
+ .test-meta{font-size:15px}.test-card h3{font-size:27px}.test-card p{font-size:17px}.chat-heading>div>span{font-size:14px}.chat-message p{font-size:17px}.suggestions button{font-size:16px}.chat-welcome h3{font-size:28px}.chat-welcome p{font-size:17px}.fine-print{font-size:13px}.source-link{font-size:14px}
+ .answer-review summary strong{font-size:15px}.answer-review summary>span:nth-last-child(2){font-size:13px}
+}
+@media(max-width:400px){.hero-art{height:220px}.editorial-copy h1{font-size:37px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}

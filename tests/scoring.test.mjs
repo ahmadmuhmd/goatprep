@@ -1,0 +1,12 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import ts from 'typescript';
+import fs from 'node:fs';
+const source=fs.readFileSync(new URL('../lib/scoringEngine.ts',import.meta.url),'utf8');
+const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ES2022,target:ts.ScriptTarget.ES2022}}).outputText;
+const {estimate,isCorrect,route,numericValue}=await import('data:text/javascript;base64,'+Buffer.from(js).toString('base64'));
+const question=(id,difficulty=2,scored=true)=>({id,difficulty,scored,options:[{letter:'A',text:'Correct'}],answer:['A']});
+test('Equivalent fractions accepted but malformed and zero-denominator responses rejected',()=>{const q={...question('q'),options:[],answer:['0.75']};assert(isCorrect(q,'3/4'));assert(!isCorrect(q,''));assert(!isCorrect(q,'3/0'));assert(!isCorrect(q,'0.75 kg'));assert.equal(numericValue('1e3'),null);});
+test('Omissions count as incorrect and trial items never affect estimates',()=>{const qs=Array.from({length:25},(_,i)=>question(String(i)));const r=Object.fromEntries(qs.map(q=>[q.id,{answer:'A'}]));const full=estimate(qs,r).score;delete r['1'];assert(estimate(qs,r).score<=full);assert.deepEqual(estimate(qs,r),estimate([...qs,question('trial',3,false)],r));assert(estimate(qs,{}).score<full);});
+test('Scores are bounded, rounded and monotonic for fixed questions',()=>{const qs=Array.from({length:50},(_,i)=>question(String(i),i%3+1)),r={};let prev=0;for(let i=0;i<=qs.length;i++){const s=estimate(qs,r).score;assert(s>=200&&s<=800&&s%10===0);assert(s>=prev);prev=s;if(i<qs.length)r[qs[i].id]={answer:'A'};}});
+test('Routing uses only its supplied first-module responses',()=>{const q=Array.from({length:20},(_,i)=>question('m'+i));const unrelated=Object.fromEntries(Array.from({length:54},(_,i)=>['rw'+i,{answer:'A'}]));assert.equal(route(q,unrelated),'easy');for(const item of q)unrelated[item.id]={answer:'A'};assert.equal(route(q,unrelated),'hard');});

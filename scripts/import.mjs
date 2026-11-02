@@ -1,0 +1,14 @@
+import fs from 'node:fs';
+import {createDatabase} from '../lib/neon-database.mjs';
+import {validate} from './validate.mjs';
+const file=process.argv[2],publish=process.argv.includes('--publish');
+if(!file)throw new Error('Usage: npm run content:import -- content/test-1.reviewed.json --publish');
+const bank=JSON.parse(fs.readFileSync(file,'utf8')),issues=validate(bank,{reviewed:true});
+if(issues.length)throw new Error(issues.join('\n'));
+const db=createDatabase();
+const id=bank[0].test_id,number=Number(id.replace('test-',''));
+const {count,error:countError}=await db.from('attempts').select('id',{head:true,count:'exact'}).eq('test_id',id);
+if(countError)throw countError;if(count)throw new Error('This test has attempts. Do not change its questions; publish a new version/test instead.');
+const {error}=await db.rpc('publish_goat_test',{test_id_value:id,test_number:number,question_bank:bank.map(({audit_passed,audit_reason,reviewed,...q})=>{void audit_passed;void audit_reason;void reviewed;return q;}),make_public:publish});
+if(error)throw error;
+console.log(id+(publish?' published.':' imported as an unpublished draft.'));

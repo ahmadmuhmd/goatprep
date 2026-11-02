@@ -1,0 +1,2 @@
+pypdf>=6.10,<7
+psycopg[binary]>=3.2,<4

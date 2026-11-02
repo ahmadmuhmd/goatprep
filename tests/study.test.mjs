@@ -1,0 +1,15 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import ts from 'typescript';
+const compile=path=>ts.transpileModule(fs.readFileSync(new URL(path,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ES2022,target:ts.ScriptTarget.ES2022}}).outputText;
+const uri=source=>'data:text/javascript;base64,'+Buffer.from(source).toString('base64');
+const schemaURI=uri(compile('../lib/study-schema.ts'));
+const {parseStudyLesson}=await import(schemaURI);
+const foundationURI=uri(compile('../lib/lessons.ts'));
+const loader=compile('../lib/study.ts').replace("from '@/lib/lessons'","from '"+foundationURI+"'").replace("import { database } from '@/lib/server';","const database=()=>{throw new Error('not configured')};").replace("from '@/lib/study-schema'","from '"+schemaURI+"'");
+const {loadStudyLessons}=await import(uri(loader));
+const item={id:'resource-circles',section:'math',domain:'Geometry and Trigonometry',title:'Circles',summary:'Radius and area',concept:'Use area = πr².',steps:['Find radius.','Square it.'],example:'A circle has radius 3.',explanation:'Its area is 9π.',quiz:{prompt:'Radius 2: area?',options:['2π','4π','6π','8π'],answer:1,feedback:'Square the radius.'}};
+test('Study parser accepts UI format and strips private fields',()=>{const l=parseStudyLesson({...item,provenance:'private'});assert.equal(l.quiz.answer,1);assert(!('provenance' in l));assert.equal(parseStudyLesson({...item,section:'rw'}),null);assert.equal(parseStudyLesson({...item,quiz:{...item.quiz,answer:4}}),null);});
+test('Published lessons merge with fallback without leaking provenance',async()=>{let filtered=false;const query={select(){return this},eq(k,v){assert.equal(k,'published');assert.equal(v,true);filtered=true;return this},order(){return this},async limit(){return {data:[{id:item.id,payload:item}],error:null}}};const result=await loadStudyLessons({from(name){assert.equal(name,'study_lessons');return query}});assert(filtered);assert(result.lessons.some(l=>l.id===item.id));assert.equal(result.unavailable,false);assert(result.lessons.length>16);});
+test('Study remains available when database is unavailable',async()=>{const result=await loadStudyLessons();assert.equal(result.unavailable,true);assert.equal(result.lessons.length,16);});

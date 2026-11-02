@@ -1,0 +1,62 @@
+/* Solid surfaces and accessible text for the SAT learning interface. */
+:root{--bg:#fff;--text:#2d173f;--muted:#574560;--accent:#642890;--line:#d9cce3}
+body,.site-shell{background:#fff;color:var(--text)}
+.site-shell *, .site-shell *::before,.site-shell *::after{backdrop-filter:none}
+.site-header,.mobile-nav.glass,.profile-menu{background:#fff!important;box-shadow:none}
+.site-shell p,.site-shell .muted,.site-footer>span,.free-tag,.fine-print,.lesson-meta,.hero-proof,.chat-heading>div>span{color:#574560}
+.site-shell h1,.site-shell h2,.site-shell h3,.lesson-card h3,.chat-welcome h3,.review-card blockquote{color:#2d173f}
+.brand,.brand-light,.desktop-nav a,.text-button,.eyebrow,.domain-title>span,.feature-top,.feature-top>span,.feature-arrow,.source-link,.suggestions button,.chat-message>span{color:#642890}
+.desktop-nav a.active,.mobile-nav a.active{background:#eee3f7;color:#4e1d75}
+.mobile-nav a{color:#574560}
+.glass,.feature-card,.test-card.unavailable,.chat-panel,.quiz-option,.button.secondary{background:#fff;border:1px solid #d9cce3;box-shadow:none}
+.button.primary,.send-button{background:#642890;color:#fff;box-shadow:none}
+.button.primary:hover,.send-button:hover{background:#4e1d75;box-shadow:none}
+.button.secondary{color:#4e1d75;border-color:#9b7bad}
+.button.quiet,.button:disabled{background:#eee8f2;color:#675772;opacity:1;box-shadow:none}
+.feature-card:hover{background:#f7f2fb;border-color:#8657a2;box-shadow:none}
+.editorial-copy{background:#fff;border-radius:24px;padding:24px 28px 0}
+.editorial-copy h1{font-size:clamp(40px,4.3vw,66px);color:#2d173f}
+.editorial-copy h1 em,.page-intro h1 span{color:#642890}
+.editorial-copy>p{color:#574560;font-size:22px;max-width:850px}
+.eyebrow{font-weight:700;letter-spacing:.7px}
+.sat-overview{background:#502075;color:#fff;border-radius:24px;padding:30px 32px 34px}
+.overview-heading{display:flex;justify-content:space-between;gap:16px;align-items:center;padding-bottom:25px;border-bottom:1px solid #9068ae}
+.site-shell .overview-heading h2{font-size:25px;color:#fff;letter-spacing:-.5px;margin:0}
+.overview-heading>span{font-size:17px;color:#fff}
+.sat-overview .stat-strip{border:0;padding:30px 0 0;margin:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0}
+.sat-overview .stat-strip>div{padding:0 24px;border-right:1px solid #9068ae;display:flex;flex-direction:column;gap:6px}
+.sat-overview .stat-strip>div:first-child{padding-left:0}
+.sat-overview .stat-strip>div:last-child{border:0;padding-right:0}
+.sat-overview .stat-strip strong{color:#fff;font-size:38px;font-weight:650;line-height:1.25;letter-spacing:-1px}
+.sat-overview .stat-strip span{color:#fff;font-size:18px;font-weight:600}
+.sat-overview .stat-strip small{color:#f1e7f8;font-size:15px;line-height:1.5}
+.sat-subjects{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:32px}
+.sat-subjects article{padding:28px 30px;background:#f5effa;border:1px solid #dacbe5;border-radius:20px}
+.sat-subjects h2{font-size:28px;letter-spacing:-.6px;margin:10px 0 14px}
+.sat-subjects p{font-size:18px;line-height:1.7;margin-bottom:22px}
+.feature-card p{color:#574560}
+.segmented,.worked-example,.quiz-feedback,.chat-composer,.chat-message,.answer-pair{background:#f5effa}
+.segmented button{color:#574560}.segmented button.selected{color:#4e1d75;background:#fff;box-shadow:none}
+input,textarea,.search-input,.chat-composer input{background:#fff;color:#2d173f;border-color:#9b7bad}
+input::placeholder,textarea::placeholder{color:#675772}
+.suggestions button,.source-link{background:#fff;border-color:#b59bc6}
+.chat-message.user,.pill,.test-card .pill{background:#eee3f7;color:#4e1d75}
+.test-number,.test-card.unavailable .test-number,.history-row>span:last-child{color:#642890}
+.jerry-pet{width:68px;height:68px;background:#f5effa;border:0;box-shadow:none}
+.jerry-pet.large{width:124px;height:124px}
+.jerry-pet img{width:94%;height:94%;border-radius:0}
+.pet-halo,.pet-spark{display:none}.pet-status{background:#31804c}
+.modal-backdrop{background:#e6dced;backdrop-filter:none}.modal{background:#fff;box-shadow:none}
+:focus-visible{outline:3px solid #7d3eb0;outline-offset:4px}
+@media(max-width:1050px){.sat-overview{padding:28px 24px}.sat-overview .stat-strip>div{padding:0 16px}.sat-overview .stat-strip strong{font-size:31px}.sat-overview .stat-strip span{font-size:16px}}
+@media(max-width:760px){
+ .editorial-copy{padding:22px 0 0;border-radius:0}.editorial-copy>p{font-size:19px}
+ .sat-overview{padding:26px 22px;border-radius:20px}.overview-heading{display:block;padding-bottom:20px}.site-shell .overview-heading h2{font-size:25px;line-height:1.3}.overview-heading>span{display:block;margin-top:10px;font-size:16px}
+ .sat-overview .stat-strip{grid-template-columns:1fr 1fr;gap:26px 20px;padding-top:24px}
+ .sat-overview .stat-strip>div,.sat-overview .stat-strip>div:first-child,.sat-overview .stat-strip>div:last-child{padding:0;border:0}
+ .sat-overview .stat-strip strong{font-size:27px}.sat-overview .stat-strip span{font-size:16px}.sat-overview .stat-strip small{font-size:14px}
+ .sat-subjects{grid-template-columns:1fr;gap:18px;margin-top:22px}.sat-subjects article{padding:25px}.sat-subjects h2{font-size:26px}.sat-subjects p{font-size:17px}
+ .chat-heading{gap:10px}.chat-heading .jerry-pet{width:54px;height:54px}
+}
+
+.lesson-body p,.worked-example>span:last-child{white-space:pre-line}

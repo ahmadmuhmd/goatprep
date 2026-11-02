@@ -1,0 +1,17 @@
+/* GOATPrep signature: vivid purple actions, deep ink headings, opaque surfaces. */
+:root{--signature:#7628ed;--accent:#7628ed;--text:#241138}
+.brand,.brand-light,.eyebrow,.feature-top,.feature-arrow,.text-button,.source-link{color:#7022dc}
+.button.primary,.send-button{background:#7628ed;color:white}
+.button.primary:hover,.send-button:hover{background:#611bc9}
+.desktop-nav a.active,.mobile-nav a.active{background:#7628ed;color:#fff}
+.site-shell h1,.site-shell h2,.site-shell h3{color:#241138}
+.editorial-copy h1 em,.page-intro h1 span{color:#7628ed}
+.sat-overview{background:#7628ed;border:0;border-bottom:8px solid #35134f}
+.overview-heading,.sat-overview .stat-strip>div{border-color:#b88cf7}
+.sat-subjects article{background:#f5efff;border-color:#d6c2f5;border-top:5px solid #7628ed}
+.feature-card{border:1px solid #d6c2f5;border-top:4px solid #35134f}
+.feature-card:hover{background:#f5efff;border-color:#7628ed}
+.site-footer{background:#28143b;border-radius:24px 24px 0 0;margin-top:72px}
+.site-footer .brand,.site-footer .brand-light,.site-shell .site-footer p,.site-footer>span{color:#fff}
+.jerry-pet{background:#f1e7ff}.pet-status{background:#4e9258}
+:focus-visible{outline-color:#7628ed}
