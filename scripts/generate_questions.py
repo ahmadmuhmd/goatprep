@@ -140,6 +140,10 @@ Approve only if both solutions agree, the explanation is accurate, each distract
 actually wrong for a stated reason, the target skill and difficulty fit, grammar and
 notation are clean, and no visual is needed. Reject invented real-world citations,
 unfair specialist knowledge, giveaway choices, and unclear quantifiers. Do not approve just because a solver marked valid.
+Judge grammar by the context and a concrete Standard English rule, not a personal style
+preference or a claim about an official SAT format that is not specified in the slot.
+Do not reject an established Standard English variant as incorrect; reject only when
+two or more choices are defensible, or when the intended skill is not actually tested.
 This is a quality gate, not a guarantee of empirical difficulty or official SAT equivalence.
 """
 
@@ -186,10 +190,10 @@ GUIDANCE = {
 "Command of textual evidence": "State a claim or hypothesis and ask which finding/quotation most directly supports or weakens it.",
 "Quantitative evidence in text tables": "Provide an accessible small text table; ask which statement uses the data to support a claim. Verify values, comparisons, labels and units.",
 "Sentence boundaries": "Use a narrow, unambiguous format: write one introductory dependent clause beginning with Although, Because, When, While, If, After, Before, Since, Unless, or Once, then place ______ immediately before its independent main clause. Provide exactly four punctuation-only options: comma (,), semicolon (;), period (.), and colon (:). The comma must be the sole correct answer; set the answer key to the option containing the comma and explain that the other marks would leave an introductory dependent clause improperly separated. Never include words from either side of the marker in an option. Do not place the marker between two independent clauses, where a period and semicolon can both be correct. Use the standard stem 'Which choice completes the text so that it conforms to the conventions of Standard English?' Never write the word 'blank'.",
-"Subject-verb agreement": "Use a clear true subject with an intervening phrase; choices differ in agreement, and only one fits.",
+"Subject-verb agreement": "Use a simple, explicit count-noun subject and a present-tense verb. Keep the subject immediately next to the verb; do not use collective nouns, quantities, intervening phrases, coordinated subjects, or nearby distractor nouns. Choices differ only in verb agreement, and exactly one matches the subject.",
 "Verb tense": "Supply explicit time relationships. Only one tense/aspect must be licensed by context.",
 "Modifiers": "Test modifier placement or attachment: include a descriptive phrase and an explicit intended noun, then ask which version places the phrase so it clearly modifies that noun. Options must vary placement or attachment of the modifier, not conjunctions, transitions, clause relationships, or punctuation alone. Use a six-underscore marker if a gap is needed. The correct choice must have one clear attachment; wrong choices should create a misplaced, dangling, or misleading modifier.",
-"Pronouns and possessives": "Test clear antecedent agreement or apostrophe use; no ambiguous referents.",
+"Pronouns and possessives": "Use an unmistakable antecedent and test one rule only. Avoid singular they/their, generic his or her, and other style-guide-sensitive singular-person pronouns. Prefer a clearly plural human antecedent with a matching plural pronoun, or test its/it's or whose/who's with an explicit noun antecedent. Keep any other nearby noun from plausibly serving as the antecedent. Make exactly one option correct under Standard English and explain the rule precisely.",
 "Transitions": "Place ______ between ideas and use the stem 'Which choice completes the text with the most logical and precise word or phrase?' Make the logical relationship unmistakable and ensure only one transition fits. Never write the word 'blank'.",
 "Rhetorical synthesis": "Supply 4-6 bullet-point notes and a precise rhetorical goal. All options may use true notes but exactly one satisfies the goal.",
 "Linear equations in one variable": "Solve or interpret a linear equation; clearly identify the requested value.",
