@@ -15,10 +15,10 @@ Open C:\sat-simulator in VS Code. Open scripts/generate_questions.py and click
 Or use a terminal command:
 
 ```powershell
-py scripts/generate_questions.py --test 1 --budget 5 --use-legacy-key
+py scripts/generate_questions.py --test 1 --budget 2 --use-legacy-key
 ```
 
-The 5-dollar ceiling is an example, not a price estimate. Choose your own ceiling.
+The example ceiling is not a price estimate. Choose your own ceiling up to $2 per test.
 `--budget` is a cumulative reservation ceiling for that test, not an amount the script
 will automatically spend. It can pause below the ceiling when the next request's
 conservative reservation will not fit in the remaining balance. Raising the ceiling allows
@@ -68,7 +68,7 @@ A verbatim-overlap check catches long copied spans; human originality review is 
 
 To use another JSON:
 ```powershell
-py scripts/generate_questions.py --test 1 --budget 5 --examples "G:\Other computers\HP\sat-simulator\extracted_sat_items.json"
+py scripts/generate_questions.py --test 1 --budget 2 --examples "G:\Other computers\HP\sat-simulator\extracted_sat_items.json"
 ```
 
 Selected excerpts are sent to your configured OpenRouter models as part of generation.
@@ -87,7 +87,7 @@ This command makes no network requests.
 
 For just three new accepted questions:
 ```powershell
-py scripts/generate_questions.py --test 1 --budget 5 --limit 3 --use-legacy-key
+py scripts/generate_questions.py --test 1 --budget 2 --limit 3 --use-legacy-key
 ```
 
 ## Stop and restart
@@ -225,7 +225,7 @@ It refuses to silently mix old-bank questions with the new blueprint.
 Preserve any earlier bank and use a new output folder:
 
 ```powershell
-py scripts/generate_questions.py --test 1 --budget 5 --output content-v2 --use-legacy-key
+py scripts/generate_questions.py --test 1 --budget 2 --output content-v2 --use-legacy-key
 ```
 
 Use content-v2 in the review/import commands too.

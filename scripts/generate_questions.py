@@ -19,7 +19,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 MAX_REQUEST_ATTEMPTS = 3
-MAX_TEST_BUDGET = 1.0
+MAX_TEST_BUDGET = 2.0
 RETRY_BASE_SECONDS = 10
 RETRY_MAX_SECONDS = 120
 
@@ -375,7 +375,7 @@ def fetch_catalog():
 class Client:
     def __init__(self, key, models, catalog, ledger_path, budget):
         if not math.isfinite(budget) or not 0 < budget <= MAX_TEST_BUDGET:
-            raise RuntimeError("Budget must be positive and no greater than $1.00 per test; no paid calls made.")
+            raise RuntimeError("Budget must be positive and no greater than $2.00 per test; no paid calls made.")
         self.key, self.models, self.catalog = key, models, catalog
         self.path, self.budget = ledger_path, budget
         self.ledger = json.loads(ledger_path.read_text()) if ledger_path.exists() else {"reserved": 0, "calls": 0}
@@ -438,7 +438,7 @@ class Client:
                 f"Cumulative reservation is ${reserved:.4f} of ${self.budget:.2f}; "
                 f"the next request needs a ${next_reserve:.4f} reservation and "
                 f"${remaining:.4f} remains. Progress is saved. The maximum permitted "
-                "cumulative budget is $1.00 per test.")
+                "cumulative budget is $2.00 per test.")
 
     def call(self, model, system, prompt, max_tokens, stage, temperature=0.2):
         if type(max_tokens) is not int or max_tokens <= 0:
@@ -828,7 +828,7 @@ def main():
     load_env()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--test", type=int, choices=range(1,19), default=1)
-    parser.add_argument("--budget", type=float, default=0.75, help="Cumulative USD ceiling for this test (default 0.75; maximum 1.00)")
+    parser.add_argument("--budget", type=float, default=0.75, help="Cumulative USD ceiling for this test (default 0.75; maximum 2.00)")
     parser.add_argument("--draft-model", default=os.getenv("OPENROUTER_MODEL") or DEFAULTS[0])
     parser.add_argument("--audit-model", default=os.getenv("OPENROUTER_AUDIT_MODEL") or DEFAULTS[1],
                         help="Solver used for Reading & Writing items")
@@ -848,7 +848,7 @@ def main():
     if len(sys.argv)==1:
         print("GOATPrep: generate or resume one test. Press Ctrl+C to stop safely.")
         args.test=int(input("Test number [1]: ").strip() or "1")
-        args.budget=float(input("Total spending ceiling in USD for this test [0.75; maximum 1.00]: ").strip() or "0.75")
+        args.budget=float(input("Total spending ceiling in USD for this test [0.75; maximum 2.00]: ").strip() or "0.75")
         if not 1<=args.test<=18: parser.error("Test number must be 1-18")
     if args.max_tokens<1000 or args.solver_max_tokens<1 or args.editor_max_tokens<1 or args.limit<1:
         parser.error("max-tokens >=1000, solver/editor token caps >=1 and limit >=1 required")
@@ -880,7 +880,7 @@ def main():
         print("Offline plan saved:",target)
         return
     if not math.isfinite(args.budget) or not 0<args.budget<=MAX_TEST_BUDGET:
-        parser.error("Supply --budget greater than 0 and at most 1.00; no paid calls made.")
+        parser.error("Supply --budget greater than 0 and at most 2.00; no paid calls made.")
     key=os.getenv("OPENROUTER_API_KEY") or legacy_key()
     if not key: parser.error("Set OPENROUTER_API_KEY in .env.local; no key was found in the old script either.")
     with GenerationLock(args.output/f"test-{args.test}.generation.lock"):
