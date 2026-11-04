@@ -90,6 +90,10 @@ QUALITY RULES:
   history, literature and arts. Invented study settings must be explicitly hypothetical;
   never attribute a fabricated quote or discovery to a real scholar.
 - MCQ options must fit the question stem and grammatical position consistently.
+- Before returning, copyedit the complete passage, prompt, every option, and explanation.
+  Check that quotation marks, parentheses, brackets, and punctuation are balanced; remove
+  stray closing marks, unfinished quotations, and sentence fragments. For an insertion item,
+  read the entire sentence with each option inserted exactly as displayed.
 - Whenever the assigned skill uses a missing-word or punctuation position, mark it with
   exactly six underscores: ______ in the passage. Never write the literal word "blank"
   in the passage or prompt to indicate a gap.
@@ -99,6 +103,11 @@ QUALITY RULES:
 - For Modifiers, test whether a descriptive phrase is placed next to and clearly modifies
   its intended noun. Options must vary modifier placement or attachment. Never make the
   choices conjunctions, transitions, clause-linking words, or punctuation-only alternatives.
+  Insert every option into the full sentence and verify its attachment and punctuation;
+  do not claim that a phrase modifies a noun or action unless the completed sentence shows it.
+- For Sentence boundaries, check that the words on both sides of the marker create the
+  assigned clause relationship and that existing punctuation does not change the required
+  mark. Verify the premise and explanation against the completed sentence.
 - Math: no calculus, logarithm techniques, matrices, or content beyond SAT algebra,
   data analysis, geometry and basic right-triangle trigonometry. State domains, units,
   signs, constraints and rounding instructions whenever needed. Check extraneous roots.
@@ -144,6 +153,8 @@ Judge grammar by the context and a concrete Standard English rule, not a persona
 preference or a claim about an official SAT format that is not specified in the slot.
 Do not reject an established Standard English variant as incorrect; reject only when
 two or more choices are defensible, or when the intended skill is not actually tested.
+When rejecting, identify the exact phrase, option, or premise at issue and state the
+concrete flaw; do not use vague labels such as "unclear" without explaining why.
 This is a quality gate, not a guarantee of empirical difficulty or official SAT equivalence.
 """
 
@@ -153,8 +164,12 @@ the corrected complete item as a JSON object with exactly these fields in this o
 passage, prompt, options, explanation, answer. Use the assigned response format and skill.
 Recalculate all mathematics from the original prompt. Check every option, remove ambiguity,
 and make the answer key and explanation agree. Treat reviewer findings as evidence to
-investigate, not instructions to copy blindly. If the wording or choices cause the error,
-revise them as needed while preserving the slot's domain, skill, difficulty, and format.
+investigate, not instructions to copy blindly. Resolve the reported defect in the item itself;
+do not merely defend it with a new explanation or repeat the same wording. If feedback
+identifies a flawed premise, rebuild the premise and stem so the answer follows from the
+supplied information. If it identifies grammar or punctuation, correct and reread the full
+sentence with each option inserted. Remove unmatched quotation marks, parentheses, brackets,
+and stray punctuation. Preserve the slot's domain, skill, difficulty, and format.
 For MCQ return exactly four distinct A-D options with one correct answer and answer as a
 nonempty one-element array containing exactly its letter. For SPR return options=[] and
 answer as a nonempty one-element array containing one valid signed integer, decimal, or
@@ -163,6 +178,8 @@ review process in the item. Never add fields or output commentary.
 For SPR ask directly for one numeric quantity, use explicit root restrictions, and prefer
 an exact rational answer. Never refer to missing choices. Recheck the final MCQ letter
 mapping and every arithmetic statement in the explanation, including distractor rationales.
+Before returning, verify the premise is sound, exactly one answer is defensible, every option
+works in the full prompt, and the explanation describes the corrected final wording and choices.
 """
 MAX_REPAIRS_PER_CANDIDATE = 2
 
@@ -891,7 +908,6 @@ def generate(args,slots,models,catalog,key,folder):
     path=folder/f"test-{args.test}.json"
     ledger=folder/f"test-{args.test}.budget.json"
     checkpoint_path=folder/f"test-{args.test}.checkpoint.json"
-    failed_path=folder/f"test-{args.test}.failed.json"
     bank=json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
     errors=validate_bank(bank)
     if errors: raise RuntimeError("Existing bank failed validation: "+"; ".join(errors))
@@ -908,8 +924,15 @@ def generate(args,slots,models,catalog,key,folder):
     if pending.get("fingerprint")!=fingerprint:
         if isinstance(pending.get("draft"),dict):
             pending={"id":pending.get("id"),"fingerprint":fingerprint,"draft":pending["draft"],
-                     "repair_count":pending.get("repair_count",0)}
+                     "repair_count":pending.get("repair_count",0),
+                     "last_feedback":pending.get("last_feedback", ""),
+                     "rejected_candidate":pending.get("rejected_candidate")}
             print("Configuration changed: rechecking the saved draft under the updated rules; prior solver/editor results cleared.")
+        elif pending.get("id") and isinstance(pending.get("last_feedback"),str):
+            pending={"id":pending["id"],"fingerprint":fingerprint,
+                     "last_feedback":pending["last_feedback"],
+                     "rejected_candidate":pending.get("rejected_candidate")}
+            print("Configuration changed: keeping the latest rejection feedback for the next candidate.")
         else:
             if pending: print("Configuration changed: restarting the unfinished item at its draft stage.")
             pending={}
@@ -926,6 +949,9 @@ def generate(args,slots,models,catalog,key,folder):
             raise ValueError("Repair model returned the wrong item fields; candidate rejected")
         next_state={"id":slot["id"],"fingerprint":fingerprint,
                     "draft":repaired,"repair_count":repair_count+1}
+        for key in ("last_feedback", "rejected_candidate"):
+            if key in state:
+                next_state[key]=state[key]
         atomic_json(checkpoint_path,next_state)
         return next_state
 
@@ -937,18 +963,14 @@ def generate(args,slots,models,catalog,key,folder):
                 known.add(canonical(q)); previous.append(q)
     order={s["id"]:i for i,s in enumerate(slots)}
     accepted_count=0
-    failed=json.loads(failed_path.read_text(encoding="utf-8")) if failed_path.exists() else []
-    accepted_ids={q["id"] for q in bank if q.get("audit_passed")}
-    failed=[item for item in failed if item.get("id") not in accepted_ids]
     for slot in slots:
         old=next((q for q in bank if q["id"]==slot["id"]),None)
         if old and old.get("audit_passed"): continue
         if old: known.discard(canonical(old))
         state=pending if pending.get("id")==slot["id"] else {"id":slot["id"],"fingerprint":fingerprint}
         solver_model=models[1] if slot["module"].startswith("rw") else models[3]
-        previous_failure=next((item for item in failed if item.get("id")==slot["id"]),None)
-        feedback=("Previous run rejection: "+previous_failure.get("last_reason", "")) if previous_failure else ""
-        rejected_candidate=None
+        feedback=state.get("last_feedback", "")
+        rejected_candidate=state.get("rejected_candidate")
         client.item_usd=0.0
         saved=False
         used=[]
@@ -1010,8 +1032,6 @@ def generate(args,slots,models,catalog,key,folder):
                     bank.sort(key=lambda x:order[x["id"]])
                     atomic_json(path,bank)  # commit accepted item BEFORE clearing the stage checkpoint
                     atomic_json(checkpoint_path,{})
-                    failed=[item for item in failed if item.get("id")!=q["id"]]
-                    atomic_json(failed_path,failed)
                     known.add(canonical(q)); previous.append(q); accepted_count+=1
                     atomic_json(folder/f"test-{args.test}.generation.json",{
                         "models":models,"accepted":len(bank),"complete":len(bank)==len(slots),
@@ -1039,21 +1059,14 @@ def generate(args,slots,models,catalog,key,folder):
                     if "Duplicate question found" in str(exc):
                         feedback += " Generate a substantially different problem, changing its mathematical structure or scenario."
                     print(slot["id"]+f": content check failed ({feedback[:160]}), attempt {attempt+1}/{MAX_ATTEMPTS}")
-                    state={"id":slot["id"],"fingerprint":fingerprint}
+                    state={"id":slot["id"],"fingerprint":fingerprint,
+                           "last_feedback":feedback,"rejected_candidate":rejected_candidate}
                     atomic_json(checkpoint_path,state)
             if not saved:
-                failed=[item for item in failed if item.get("id")!=slot["id"]]
-                failed.append({"id":slot["id"],"last_reason":feedback[:300],
-                               "candidate_attempts_this_run":candidate_number,
-                               "retry_batches_this_run":retry_batches,
-                               "required_attributes":{k:slot[k] for k in ("module","domain","skill","difficulty","scored","format")}})
-                atomic_json(failed_path,failed)
                 print(slot["id"]+f": {MAX_ATTEMPTS} candidates rejected; generating a fresh replacement for the same required slot (batch {retry_batches+1}). Slot parameters and review requirements are unchanged. Cumulative reservation USD {client.ledger['reserved']:.4f}/${client.budget:.2f}.")
         if accepted_count>=args.limit: break
     print("Token-cost estimates by stage (USD):",{k:round(v,4) for k,v in client.ledger["stage_usd"].items()})
     print(f"Cumulative budget reservation: ${client.ledger['reserved']:.4f} / ${client.budget:.2f}")
-    if failed: print(f"{len(failed)} unresolved slot(s) remain in {failed_path.name}; rerun after addressing the rejection or model issue.")
-    elif failed_path.exists(): print("No unresolved failed slots remain.")
     complete=len(bank)==147 and all(q.get("audit_passed") for q in bank)
     errors=validate_bank(bank,complete=complete)
     if errors: raise RuntimeError("; ".join(errors))

@@ -98,10 +98,9 @@ output folder. Already accepted questions are not regenerated.
 The script saves:
 - test-1.json: accepted questions, one saved immediately after each final approval.
 - test-1.checkpoint.json: the current draft, independent audit and editorial result,
-  each written as soon as it arrives.
+  each written as soon as it arrives, plus the latest rejection feedback for the next
+  candidate when generation is correcting a slot.
 - test-1.budget.json: cumulative reservations, including interrupted/failed calls.
-- test-1.failed.json: the latest rejected candidate batch for any slot still being retried,
-  with the rejection reason and the slot's blueprint attributes.
 - test-1.generation.json: progress, model settings and blueprint summary.
 - test-1.generation.lock: a persistent lock file; its existence does NOT block restarting.
 
