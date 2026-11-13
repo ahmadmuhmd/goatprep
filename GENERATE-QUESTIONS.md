@@ -123,11 +123,11 @@ after the provider accepted a request, the budget ledger conservatively reserves
 each retry; returned usage reconciles the latest attempt when available.
 
 Each slot has fixed module, domain, skill, difficulty, response format and scored/unscored
-attributes. The generator tries candidates in batches of three. If a batch fails, it
-automatically starts another batch for that same slot, using the rejection feedback and
-rotating reference examples. It does not move on until that slot passes. This continues until
-the item passes or the cumulative spending ceiling is reached. Accepted questions stay saved.
-If you stop the process, rerun the same command to resume.
+attributes. The generator tries candidates in batches of three, up to nine rejected
+candidates for one slot. It saves the rejection feedback and accepted questions, then stops
+at the cap instead of repeatedly spending on a slot that is not improving. After reviewing
+the checkpoint feedback, `--retry-rejected-slot` grants that slot up to nine more candidates.
+Other interruptions can be resumed by rerunning the same command.
 When local validation, the independent solver, or the editor identifies a repairable defect,
 the author model receives the draft and specific feedback and may return a corrected full
 item up to twice for that candidate. Every repaired item goes through local checks and a fresh
@@ -137,8 +137,13 @@ stage in the ledger.
 For skills that use a word or punctuation gap, the generator requires a six-underscore
 marker (`______`) and rejects the literal word "blank" locally before paying for solver
 and editor calls.
-Modifier questions must test modifier placement or attachment. The generator rejects
-modifier items whose four choices are only conjunctions or transitions, such as "and"/"so".
+Modifier questions use a dangling-modifier diagnostic: an introductory participial phrase
+ends with a comma, the six-underscore marker follows for the sentence subject, and the main
+verb follows that marker. Choices must be noun phrases naming possible or implausible doers
+of the introductory action. The generator rejects markers in other positions and choices
+that are adverbial or prepositional phrases, conjunctions, transitions, or punctuation.
+Reference examples are omitted for this constrained skill so they cannot pull the author
+back toward ambiguous choice structures.
 For student-produced responses, the answer must be a signed integer, decimal, or simple
 fraction (for example, `-3`, `0.75`, or `3/4`) with no units, commas, currency, or math markup.
 SPR prompts that ask the student to choose an option are rejected locally. When a candidate

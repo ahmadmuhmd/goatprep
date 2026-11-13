@@ -103,6 +103,11 @@ QUALITY RULES:
 - For Modifiers, test whether a descriptive phrase is placed next to and clearly modifies
   its intended noun. Options must vary modifier placement or attachment. Never make the
   choices conjunctions, transitions, clause-linking words, or punctuation-only alternatives.
+  Use a dangling-modifier diagnostic: begin with an introductory participial phrase ending
+  in a comma, put ______ immediately after the comma for the sentence subject, and put the
+  main verb after the marker. Ask which choice names the subject that can perform the
+  introductory action. All four choices must be concise noun phrases naming possible or
+  implausible doers; do not use adverbial phrases or alternate sentence fragments.
   Insert every option into the full sentence and verify its attachment and punctuation;
   do not claim that a phrase modifies a noun or action unless the completed sentence shows it.
 - For Sentence boundaries, check that the words on both sides of the marker create the
@@ -209,7 +214,7 @@ GUIDANCE = {
 "Sentence boundaries": "Use a narrow, unambiguous format: write one introductory dependent clause beginning with Although, Because, When, While, If, After, Before, Since, Unless, or Once, then place ______ immediately before its independent main clause. Provide exactly four punctuation-only options: comma (,), semicolon (;), period (.), and colon (:). The comma must be the sole correct answer; set the answer key to the option containing the comma and explain that the other marks would leave an introductory dependent clause improperly separated. Never include words from either side of the marker in an option. Do not place the marker between two independent clauses, where a period and semicolon can both be correct. Use the standard stem 'Which choice completes the text so that it conforms to the conventions of Standard English?' Never write the word 'blank'.",
 "Subject-verb agreement": "Use a simple, explicit count-noun subject and a present-tense verb. Keep the subject immediately next to the verb; do not use collective nouns, quantities, intervening phrases, coordinated subjects, or nearby distractor nouns. Choices differ only in verb agreement, and exactly one matches the subject.",
 "Verb tense": "Supply explicit time relationships. Only one tense/aspect must be licensed by context.",
-"Modifiers": "Test modifier placement or attachment: include a descriptive phrase and an explicit intended noun, then ask which version places the phrase so it clearly modifies that noun. Options must vary placement or attachment of the modifier, not conjunctions, transitions, clause relationships, or punctuation alone. Use a six-underscore marker if a gap is needed. The correct choice must have one clear attachment; wrong choices should create a misplaced, dangling, or misleading modifier.",
+"Modifiers": "Use a dangling-modifier diagnostic. Begin the passage with an introductory participial phrase that ends in a comma, then put exactly one ______ immediately after the comma for the sentence subject, followed by the main verb. Ask which choice names the subject that can logically perform the introductory action. Make all four choices concise noun phrases naming possible or implausible doers. The correct noun must be the clear performer; each wrong noun must create a dangling or illogical modifier. Do not put the marker inside a clause after its subject or object, and do not use adverbial phrases, conjunctions, transitions, punctuation, or alternate sentence fragments as choices.",
 "Pronouns and possessives": "Use an unmistakable antecedent and test one rule only. Avoid singular they/their, generic his or her, and other style-guide-sensitive singular-person pronouns. Prefer a clearly plural human antecedent with a matching plural pronoun, or test its/it's or whose/who's with an explicit noun antecedent. Keep any other nearby noun from plausibly serving as the antecedent. Make exactly one option correct under Standard English and explain the rule precisely.",
 "Transitions": "Place ______ between ideas and use the stem 'Which choice completes the text with the most logical and precise word or phrase?' Make the logical relationship unmistakable and ensure only one transition fits. Never write the word 'blank'.",
 "Rhetorical synthesis": "Supply 4-6 bullet-point notes and a precise rhetorical goal. All options may use true notes but exactly one satisfies the goal.",
@@ -240,8 +245,8 @@ def author_prompt(slot, previous, examples=None, feedback="", rejected_candidate
         'assignment': fields,
         'skill_requirements': GUIDANCE[slot['skill']],
         'desired_mcq_key': 'ABCD'[int(hashlib.sha256(slot['id'].encode()).hexdigest()[:8],16)%4] if slot['format']=='mcq' else None,
-        'style_examples_UNTRUSTED_DATA': ([] if slot['skill'] == 'Sentence boundaries' else examples or []),
-        'avoid_repeating': ([] if slot['skill'] == 'Sentence boundaries' else [
+        'style_examples_UNTRUSTED_DATA': ([] if slot['skill'] in NO_EXAMPLE_SKILLS else examples or []),
+        'avoid_repeating': ([] if slot['skill'] in NO_EXAMPLE_SKILLS else [
             {'passage': str(item.get('passage', ''))[:140],
              'prompt': str(item.get('prompt', ''))[:220]}
             for item in [p for p in previous if isinstance(p, dict)
@@ -281,12 +286,14 @@ def is_transient_provider_error(error):
 
 # draft, Reading&Writing solver, editor, Math solver
 DEFAULTS = ("deepseek/deepseek-chat", "google/gemini-3.7-flash", "google/gemini-3.7-flash", "deepseek/deepseek-r1-0528")
-MAX_ATTEMPTS = 3        # candidates per batch; replace rejected items in the same slot until saved or budget stops
+MAX_ATTEMPTS = 3        # candidates per batch
+MAX_REJECTED_CANDIDATES = 9  # stop and preserve the slot checkpoint instead of spending indefinitely
 N_EXAMPLES = 1          # style examples per question (each costs input tokens)
 EXAMPLE_CHARS = 1500
 COPY_N = 16             # consecutive identical words that count as copying (unchanged from original)
 STEM = re.compile(r"which choice[^?.]*[?.]", re.I)   # standard SAT question stems are not "copying"
 FIELDS = ("passage", "prompt", "options", "explanation", "answer")
+NO_EXAMPLE_SKILLS = frozenset({"Sentence boundaries", "Modifiers"})
 BLANK_SKILLS = frozenset({
     "Words in context", "Sentence boundaries", "Subject-verb agreement", "Verb tense",
     "Modifiers", "Pronouns and possessives", "Transitions",
@@ -296,6 +303,14 @@ MODIFIER_CONNECTOR_CHOICES = frozenset({
     "while", "whereas", "however", "therefore", "thus", "meanwhile", "instead", "also",
     "moreover", "consequently",
 })
+MODIFIER_NON_SUBJECT_START = re.compile(
+    r"^(?:after|although|as|at|because|before|by|despite|during|for|from|in|inside|into|"
+    r"like|near|of|on|onto|since|through|throughout|to|toward|under|until|upon|with|within|"
+    r"without|while|when|where|however|therefore|thus|also|moreover|instead)\b|"
+    r"^(?:[a-z]+ing|[a-z]+ly)\b", re.I)
+MODIFIER_INTRO = re.compile(
+    r"^\s*(?:(?:after|before|while|when|once|although|because|since|upon)\s+)?"
+    r"[a-z][a-z'-]*(?:ing|ed)\b[^.!?]*,\s*$", re.I)
 
 def load_env():
     path = ROOT / ".env.local"
@@ -372,12 +387,19 @@ def check_item(node, q, slot, known):
         if q.get("answer") != [comma_letter]:
             raise ValueError("For this introductory dependent-clause format, the comma is the correct answer; update the answer key and explanation.")
     if slot["skill"] == "Modifiers" and isinstance(q.get("options"), list) and len(q["options"]) == 4:
+        passage = q.get("passage", "")
+        if passage.count("______") != 1:
+            raise ValueError("Modifier items must use one six-underscore marker immediately after an introductory participial modifier and comma, before the main-clause subject.")
+        before, _, _ = passage.partition("______")
+        if not MODIFIER_INTRO.fullmatch(before):
+            raise ValueError("Modifier items must start with an introductory participial phrase ending in a comma, followed immediately by the subject marker. Do not put the marker after the subject or object.")
         option_texts = [str(option.get("text", "")) for option in q["options"] if isinstance(option, dict)]
         option_words = [re.sub(r"[^a-z]+", " ", text.lower()).strip() for text in option_texts]
         connector_only = len(option_words) == 4 and all(text in MODIFIER_CONNECTOR_CHOICES for text in option_words)
         punctuation_only = len(option_texts) == 4 and all(not re.search(r"[a-z]", text, re.I) for text in option_texts)
-        if connector_only or punctuation_only:
-            raise ValueError("Modifiers items must test modifier placement or attachment, not conjunction/transition or punctuation-only choices. Rewrite all four options as modifier-placement alternatives.")
+        non_subject_choices = any(MODIFIER_NON_SUBJECT_START.match(text.strip()) for text in option_texts)
+        if connector_only or punctuation_only or non_subject_choices:
+            raise ValueError("Modifier choices must be concise noun phrases naming possible or implausible doers of the introductory action, not adverbial/prepositional phrases, conjunctions, transitions, or punctuation.")
     if canonical(q) in known:
         raise ValueError("Duplicate question found across saved test banks. Write a distinct item with a different underlying scenario or mathematical setup; changing only names or wording is not enough.")
     return q
@@ -856,6 +878,8 @@ def main():
     parser.add_argument("--solver-max-tokens", type=int, default=5000, help="Output cap for the solver (reasoning models need room)")
     parser.add_argument("--editor-max-tokens", type=int, default=600)
     parser.add_argument("--limit", type=int, default=147, help="Maximum NEW accepted items in this run")
+    parser.add_argument("--retry-rejected-slot", action="store_true",
+                        help="After the rejection cap, explicitly grant the unfinished slot up to 9 more candidates")
     parser.add_argument("--examples", type=Path, default=ROOT/"content/reference-examples.json")
     parser.add_argument("--output", type=Path, default=ROOT/"content")
     parser.add_argument("--dry-run",action="store_true",help="Preview blueprint/prompts/examples offline")
@@ -918,7 +942,7 @@ def generate(args,slots,models,catalog,key,folder):
             ("mcq" if q["options"] else "spr")!=slot["format"]):
             raise RuntimeError("Existing bank uses a different blueprint. Preserve it; use --output content-v2 for a fresh bank.")
     refs=args.references_obj
-    fingerprint=hashlib.sha256(("quota-retry-v7-review-guided-repair"+AUTHOR+SOLVER+EDITOR+REPAIRER+json.dumps(GUIDANCE,sort_keys=True)+
+    fingerprint=hashlib.sha256(("quota-retry-v8-bounded-modifier-diagnostic"+AUTHOR+SOLVER+EDITOR+REPAIRER+json.dumps(GUIDANCE,sort_keys=True)+
         json.dumps(models)+json.dumps(slots,sort_keys=True)+refs.digest).encode()).hexdigest()
     pending=json.loads(checkpoint_path.read_text(encoding="utf-8")) if checkpoint_path.exists() else {}
     if pending.get("fingerprint")!=fingerprint:
@@ -936,6 +960,10 @@ def generate(args,slots,models,catalog,key,folder):
         else:
             if pending: print("Configuration changed: restarting the unfinished item at its draft stage.")
             pending={}
+    if getattr(args,"retry_rejected_slot",False) and pending.get("id"):
+        pending["rejected_candidates"]=0
+        atomic_json(checkpoint_path,pending)
+        print(f"{pending['id']}: rejection counter reset by --retry-rejected-slot; latest feedback is retained.")
     client=Client(key,models,catalog,ledger,args.budget)
 
     def repair_current_candidate(state, slot, draft, stage, reason, audit=None, edit=None):
@@ -949,7 +977,7 @@ def generate(args,slots,models,catalog,key,folder):
             raise ValueError("Repair model returned the wrong item fields; candidate rejected")
         next_state={"id":slot["id"],"fingerprint":fingerprint,
                     "draft":repaired,"repair_count":repair_count+1}
-        for key in ("last_feedback", "rejected_candidate"):
+        for key in ("last_feedback", "rejected_candidate", "rejected_candidates"):
             if key in state:
                 next_state[key]=state[key]
         atomic_json(checkpoint_path,next_state)
@@ -963,6 +991,7 @@ def generate(args,slots,models,catalog,key,folder):
                 known.add(canonical(q)); previous.append(q)
     order={s["id"]:i for i,s in enumerate(slots)}
     accepted_count=0
+    stopped_for_rejections=False
     for slot in slots:
         old=next((q for q in bank if q["id"]==slot["id"]),None)
         if old and old.get("audit_passed"): continue
@@ -974,16 +1003,22 @@ def generate(args,slots,models,catalog,key,folder):
         client.item_usd=0.0
         saved=False
         used=[]
-        candidate_number=0
+        rejected_candidates=max(0,int(state.get("rejected_candidates",0)))
+        candidate_number=rejected_candidates
         retry_batches=0
         while not saved:
+            if rejected_candidates>=MAX_REJECTED_CANDIDATES:
+                print(f"{slot['id']}: reached the cap of {MAX_REJECTED_CANDIDATES} rejected candidates; checkpoint and accepted questions are preserved.")
+                stopped_for_rejections=True
+                break
             retry_batches+=1
-            for attempt in range(MAX_ATTEMPTS):
+            attempts_this_batch=min(MAX_ATTEMPTS,MAX_REJECTED_CANDIDATES-rejected_candidates)
+            for attempt in range(attempts_this_batch):
                 candidate_number+=1
                 q=None
                 try:
                     if "draft" not in state:
-                        used=[] if slot["skill"] == "Sentence boundaries" else refs.select(slot,candidate_number-1)
+                        used=[] if slot["skill"] in NO_EXAMPLE_SKILLS else refs.select(slot,candidate_number-1)
                         state["draft"]=client.call(models[0],AUTHOR,author_prompt(
                             slot,previous,used,feedback,rejected_candidate),args.max_tokens,"author",0.5)
                         atomic_json(checkpoint_path,state)
@@ -1058,19 +1093,32 @@ def generate(args,slots,models,catalog,key,folder):
                         }
                     if "Duplicate question found" in str(exc):
                         feedback += " Generate a substantially different problem, changing its mathematical structure or scenario."
-                    print(slot["id"]+f": content check failed ({feedback[:160]}), attempt {attempt+1}/{MAX_ATTEMPTS}")
+                    print(slot["id"]+f": content check failed ({feedback[:160]}), attempt {attempt+1}/{attempts_this_batch}")
+                    rejected_candidates+=1
                     state={"id":slot["id"],"fingerprint":fingerprint,
-                           "last_feedback":feedback,"rejected_candidate":rejected_candidate}
+                           "last_feedback":feedback,"rejected_candidate":rejected_candidate,
+                           "rejected_candidates":rejected_candidates}
                     atomic_json(checkpoint_path,state)
             if not saved:
-                print(slot["id"]+f": {MAX_ATTEMPTS} candidates rejected; generating a fresh replacement for the same required slot (batch {retry_batches+1}). Slot parameters and review requirements are unchanged. Cumulative reservation USD {client.ledger['reserved']:.4f}/${client.budget:.2f}.")
+                if rejected_candidates>=MAX_REJECTED_CANDIDATES:
+                    print(f"{slot['id']}: stopped after {MAX_REJECTED_CANDIDATES} rejected candidates. Review the saved feedback, then use --retry-rejected-slot to grant up to {MAX_REJECTED_CANDIDATES} more.")
+                    stopped_for_rejections=True
+                    break
+                print(slot["id"]+f": {attempts_this_batch} candidates rejected; generating a fresh replacement for the same required slot (batch {retry_batches+1}). Slot parameters and review requirements are unchanged. Cumulative reservation USD {client.ledger['reserved']:.4f}/${client.budget:.2f}.")
+        if not saved:
+            break
         if accepted_count>=args.limit: break
     print("Token-cost estimates by stage (USD):",{k:round(v,4) for k,v in client.ledger["stage_usd"].items()})
     print(f"Cumulative budget reservation: ${client.ledger['reserved']:.4f} / ${client.budget:.2f}")
     complete=len(bank)==147 and all(q.get("audit_passed") for q in bank)
     errors=validate_bank(bank,complete=complete)
     if errors: raise RuntimeError("; ".join(errors))
-    print("Complete draft ready for human review." if complete else "Partial batch saved. Run the same command to resume.")
+    if complete:
+        print("Complete draft ready for human review.")
+    elif stopped_for_rejections:
+        print("Partial batch saved. The rejected slot is checkpointed; use --retry-rejected-slot after reviewing its feedback.")
+    else:
+        print("Partial batch saved. Run the same command to resume.")
 
 if __name__=="__main__":
     try:
