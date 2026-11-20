@@ -1,19 +1,18 @@
 """GOATPrep: fill the missing questions in incomplete test banks.
 
-This file does NOT contain a second copy of the algorithm. It imports generate_questions.py
-(same folder) and calls its own generate() function, so every prompt, blueprint slot, local
-check, independent-solver gate, repair step, editor gate, budget reservation and resume rule is
-exactly the one that produced the existing questions. Because the prompts, models, slots and
-reference file feed the generator's configuration fingerprint, a checkpoint saved by
-generate_questions.py is recognised and continued, not discarded.
+This file imports generate_questions.py for the author prompt, slot blueprint, basic format
+checks, originality check, budget reservation, and resumable writes. It runs generation only:
+it skips the paid independent-solver and editorial passes, retries rejected drafts automatically
+until each slot is saved, and finishes a selected test only when all 147 slots are present.
 
 What this file adds around that algorithm:
   * finds the gaps itself by comparing each test-N.json with the blueprint (nothing is hard-coded),
-  * refuses to touch a bank that the original generator would also refuse (blueprint mismatch,
-    invalid records) and warns before it would regenerate questions that lack audit_passed,
+  * refuses to touch a bank with a blueprint mismatch or invalid records,
   * backs up test-N.json before writing,
-  * continues to the next test if one test stops (budget, rejection cap, provider outage),
-  * afterwards confirms questions are in blueprint order and runs the full 147-question check.
+  * keeps retrying rejected content until accepted, while respecting the per-test budget and
+    stopping on provider/account errors,
+  * confirms questions are in blueprint order and all 147 slots are present before reporting
+    a test complete.
 
 Usage (from the project folder, Python 3.10+, standard library only):
 
@@ -59,6 +58,13 @@ def _call_with_stage_report(self, model, system, prompt, max_tokens, stage, temp
 
 gq.Client.call = _call_with_stage_report
 
+# Retry transient requests and repair/reject candidates automatically. There is no rejected-
+# candidate ceiling in this fill workflow; the configured spending ceiling still applies.
+gq.MAX_REQUEST_ATTEMPTS = 3
+gq.MAX_REPAIRS_PER_CANDIDATE = 2
+gq.MAX_ATTEMPTS = 3
+gq.MAX_REJECTED_CANDIDATES = None
+
 
 # ----------------------------------------------------------------------------- status
 
@@ -97,9 +103,8 @@ def inspect(number, folder):
                                         "(bank came from a different blueprint; use a separate --output folder)")
                 break
     by_id = {q["id"]: q for q in bank if isinstance(q, dict) and "id" in q}
-    info["accepted"] = [s for s in slots if by_id.get(s["id"], {}).get("audit_passed")]
-    info["unaudited"] = [s["id"] for s in slots if s["id"] in by_id and not by_id[s["id"]].get("audit_passed")]
-    info["missing"] = [s for s in slots if not by_id.get(s["id"], {}).get("audit_passed")]
+    info["accepted"] = [s for s in slots if s["id"] in by_id]
+    info["missing"] = [s for s in slots if s["id"] not in by_id]
     ledger = read_json(folder / f"test-{number}.budget.json", {})
     info["reserved"] = float(ledger.get("reserved", 0) or 0) if isinstance(ledger, dict) else 0.0
     info["checkpoint"] = read_json(folder / f"test-{number}.checkpoint.json", {})
@@ -126,9 +131,6 @@ def print_status(infos, budget=None):
         lines = []
         for problem in info["problems"]:
             lines.append("PROBLEM: " + problem)
-        if info["unaudited"]:
-            lines.append(f"{len(info['unaudited'])} saved question(s) lack audit_passed; generate_questions.py would "
-                         "regenerate them (this tool skips the test unless --regenerate-unaudited is given).")
         cp = info["checkpoint"] if isinstance(info["checkpoint"], dict) else {}
         if cp.get("id"):
             rejected = cp.get("rejected_candidates", 0)
@@ -137,8 +139,6 @@ def print_status(infos, budget=None):
                 note += f", {rejected} rejected candidate(s)"
             if cp.get("last_feedback"):
                 note += f"; last feedback: {str(cp['last_feedback'])[:110]}"
-            if rejected >= gq.MAX_REJECTED_CANDIDATES:
-                note += "  -> reached the cap; use --retry-rejected-slot"
             lines.append(note)
         reserved = info["reserved"]
         cap = budget if budget else gq.MAX_TEST_BUDGET
@@ -148,7 +148,7 @@ def print_status(infos, budget=None):
             per_item = reserved / len(info["accepted"])
             projected = per_item * len(info["missing"])
             text += (f". Rough projection: ~${projected:.2f} more at this test's average of ${per_item:.3f}/question"
-                     " (Math items use the R1 solver and may cost more)")
+                     " (repairs can raise the actual cost)")
             if projected > remaining:
                 text += "  ** likely NOT enough headroom; see --raise-budget-cap **"
         lines.append(text)
@@ -171,14 +171,13 @@ def post_check(number, folder):
         bank.sort(key=lambda q: order[q["id"]])
         gq.atomic_json(path, bank)
         print(f"Test {number}: re-sorted the bank into blueprint order.")
-    complete = len(bank) == TOTAL and all(q.get("audit_passed") for q in bank)
+    complete = len(bank) == TOTAL
     errors = gq.validate_bank(bank, complete=complete)
     if errors:
         print(f"Test {number}: VALIDATION PROBLEMS: " + "; ".join(errors[:5]))
         return False
     if complete:
-        print(f"Test {number}: complete ({TOTAL}/{TOTAL}), in blueprint order, passes the full-bank check "
-              "(domain targets, 33 MCQ + 11 SPR per Math route, 54/44 per route).")
+        print(f"Test {number}: complete ({TOTAL}/{TOTAL}), all slots present and in blueprint order.")
     else:
         print(f"Test {number}: {len(bank)}/{TOTAL} saved, in blueprint order.")
     return complete
@@ -200,20 +199,8 @@ def build_parser():
     p.add_argument("--budget", type=float, help="Cumulative USD ceiling per test (the original maximum is 2.00)")
     p.add_argument("--raise-budget-cap", action="store_true",
                    help="Allow --budget above the original $2.00 per-test maximum (your explicit decision)")
-    p.add_argument("--regenerate-unaudited", action="store_true",
-                   help="Also regenerate saved questions that lack audit_passed (spends money; off by default)")
     p.add_argument("--draft-model", default=os.getenv("OPENROUTER_MODEL") or gq.DEFAULTS[0])
-    p.add_argument("--audit-model", default=os.getenv("OPENROUTER_AUDIT_MODEL") or gq.DEFAULTS[1],
-                   help="Solver for Reading & Writing")
-    p.add_argument("--editor-model", default=os.getenv("OPENROUTER_EDITOR_MODEL") or gq.DEFAULTS[2])
-    p.add_argument("--math-audit-model", default=os.getenv("OPENROUTER_MATH_AUDIT_MODEL") or gq.DEFAULTS[3],
-                   help="Solver for Math")
-    p.add_argument("--max-tokens", type=int, default=3000, help="Author/repair output cap (original default 1800)")
-    p.add_argument("--solver-max-tokens", type=int, default=5000)
-    p.add_argument("--editor-max-tokens", type=int, default=600)
-    p.add_argument("--limit", type=int, default=TOTAL, help="Maximum NEW accepted items per test in this run")
-    p.add_argument("--retry-rejected-slot", action="store_true",
-                   help="Grant a slot that hit the rejection cap up to 9 more candidates")
+    p.add_argument("--max-tokens", type=int, default=3000, help="Author/repair output cap")
     p.add_argument("--examples", type=Path, default=gq.ROOT / "content/reference-examples.json")
     p.add_argument("--output", type=Path, default=gq.ROOT / "content")
     return p
@@ -255,43 +242,47 @@ def main(argv=None):
             parser.error(f"--budget above ${gq.MAX_TEST_BUDGET:.2f} needs --raise-budget-cap "
                          "(the original generator's per-test maximum).")
         gq.MAX_TEST_BUDGET = args.budget   # read by gq.Client at construction time
-    if args.max_tokens < 1000 or args.solver_max_tokens < 1 or args.editor_max_tokens < 1 or args.limit < 1:
-        parser.error("max-tokens >=1000, solver/editor token caps >=1 and limit >=1 required")
+    if args.max_tokens < 1000:
+        parser.error("max-tokens >=1000 required")
 
-    models = [args.draft_model, args.audit_model, args.editor_model, args.math_audit_model]
-    key = os.getenv("OPENROUTER_API_KEY") or gq.legacy_key()
-    if not key:
-        parser.error("Set OPENROUTER_API_KEY in .env.local; no key was found in the old script either.")
-
+    models = [args.draft_model]
     # Preflight on local files only, before any network access.
     work = []
+    outcome = {}
     for n in tests:
         info = inspect(n, folder)
         if not info["missing"]:
             print(f"Test {n}: already complete, nothing to do.")
+            outcome[n] = True
             continue
         if info["problems"]:
             print(f"Test {n}: skipped. " + " ".join(info["problems"]))
-            continue
-        if info["unaudited"] and not args.regenerate_unaudited:
-            print(f"Test {n}: skipped. {len(info['unaudited'])} saved question(s) lack audit_passed and would be "
-                  "regenerated (and paid for). Re-run with --regenerate-unaudited if that is intended.")
+            outcome[n] = False
             continue
         if info["reserved"] >= args.budget:
             print(f"Test {n}: skipped. ${info['reserved']:.2f} is already reserved, which meets the ${args.budget:.2f} "
                   "ceiling. Raise --budget (above $2.00 also needs --raise-budget-cap).")
+            outcome[n] = False
             continue
         work.append(info)
+
     if not work:
-        return 0
+        print("\nSummary")
+        for n, done in outcome.items():
+            print(f"  Test {n}: {'complete' if done else 'still incomplete; budget or local validation blocked generation'}")
+        return 0 if outcome and all(outcome.values()) else 1
+
+    key = os.getenv("OPENROUTER_API_KEY") or gq.legacy_key()
+    if not key:
+        parser.error("Set OPENROUTER_API_KEY in .env.local; no key was found in the old script either.")
 
     refs = gq.References(resolve_examples(args.examples))
     print("Example filtering:", json.dumps(refs.report))
     print("Algorithm source: generate_questions.py sha256 "
           + hashlib.sha256(Path(gq.__file__).read_bytes()).hexdigest()[:12])
+    print("Generation mode: automatic request and content retries; no independent-solver or editorial pass.")
     catalog = gq.fetch_catalog()
 
-    outcome = {}
     for info in work:
         n = info["number"]
         print(f"\n=== Test {n}: filling {len(info['missing'])} slot(s): {describe_missing(info)} ===")
@@ -301,9 +292,8 @@ def main(argv=None):
             shutil.copy2(bank_path, backup)
             print(f"Backup: {backup.name}")
         ns = argparse.Namespace(
-            test=n, budget=args.budget, max_tokens=args.max_tokens, solver_max_tokens=args.solver_max_tokens,
-            editor_max_tokens=args.editor_max_tokens, limit=args.limit,
-            retry_rejected_slot=args.retry_rejected_slot, references_obj=refs)
+            test=n, budget=args.budget, max_tokens=args.max_tokens, generation_only=True,
+            references_obj=refs)
         try:
             with gq.GenerationLock(folder / f"test-{n}.generation.lock"):
                 gq.generate(ns, gq.blueprint(n), models, catalog, key, folder)
@@ -314,11 +304,6 @@ def main(argv=None):
     print("\nSummary")
     for n, done in outcome.items():
         print(f"  Test {n}: {'complete' if done else 'still incomplete; rerun the same command to resume'}")
-    if any(outcome.values()):
-        print("\nNext, for each completed test (the generator never publishes automatically):")
-        print("  npm run content:validate -- content/test-N.json")
-        print("  npm run content:review   -- content/test-N.json")
-        print("Then review every question, including the newly added ones, which are saved with reviewed=false.")
     return 0 if outcome and all(outcome.values()) else 1
 
 

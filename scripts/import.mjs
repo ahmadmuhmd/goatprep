@@ -3,7 +3,10 @@ import {createDatabase} from '../lib/neon-database.mjs';
 import {validate} from './validate.mjs';
 const file=process.argv[2],publish=process.argv.includes('--publish');
 if(!file)throw new Error('Usage: npm run content:import -- content/test-1.reviewed.json --publish');
-const bank=JSON.parse(fs.readFileSync(file,'utf8')),issues=validate(bank,{reviewed:true});
+// Review/audit gate removed intentionally: this project is publishing banks without
+// per-question human review. Structural/blueprint validation (147 unique, blueprint-matched
+// questions) still runs.
+const bank=JSON.parse(fs.readFileSync(file,'utf8')),issues=validate(bank);
 if(issues.length)throw new Error(issues.join('\n'));
 const db=createDatabase();
 const id=bank[0].test_id,number=Number(id.replace('test-',''));

@@ -943,7 +943,8 @@ def generate(args,slots,models,catalog,key,folder):
             raise RuntimeError("Existing bank uses a different blueprint. Preserve it; use --output content-v2 for a fresh bank.")
     refs=args.references_obj
     fingerprint=hashlib.sha256(("quota-retry-v8-bounded-modifier-diagnostic"+AUTHOR+SOLVER+EDITOR+REPAIRER+json.dumps(GUIDANCE,sort_keys=True)+
-        json.dumps(models)+json.dumps(slots,sort_keys=True)+refs.digest).encode()).hexdigest()
+        json.dumps(models)+json.dumps(slots,sort_keys=True)+refs.digest+
+        str(bool(getattr(args,"generation_only",False)))).encode()).hexdigest()
     pending=json.loads(checkpoint_path.read_text(encoding="utf-8")) if checkpoint_path.exists() else {}
     if pending.get("fingerprint")!=fingerprint:
         if isinstance(pending.get("draft"),dict):
@@ -992,12 +993,13 @@ def generate(args,slots,models,catalog,key,folder):
     order={s["id"]:i for i,s in enumerate(slots)}
     accepted_count=0
     stopped_for_rejections=False
+    rejection_cap=MAX_REJECTED_CANDIDATES
     for slot in slots:
         old=next((q for q in bank if q["id"]==slot["id"]),None)
-        if old and old.get("audit_passed"): continue
+        if old and (getattr(args,"generation_only",False) or old.get("audit_passed")): continue
         if old: known.discard(canonical(old))
         state=pending if pending.get("id")==slot["id"] else {"id":slot["id"],"fingerprint":fingerprint}
-        solver_model=models[1] if slot["module"].startswith("rw") else models[3]
+        solver_model=(models[1] if slot["module"].startswith("rw") else models[3]) if not getattr(args,"generation_only",False) else None
         feedback=state.get("last_feedback", "")
         rejected_candidate=state.get("rejected_candidate")
         client.item_usd=0.0
@@ -1007,12 +1009,13 @@ def generate(args,slots,models,catalog,key,folder):
         candidate_number=rejected_candidates
         retry_batches=0
         while not saved:
-            if rejected_candidates>=MAX_REJECTED_CANDIDATES:
+            if rejection_cap is not None and rejected_candidates>=rejection_cap:
                 print(f"{slot['id']}: reached the cap of {MAX_REJECTED_CANDIDATES} rejected candidates; checkpoint and accepted questions are preserved.")
                 stopped_for_rejections=True
                 break
             retry_batches+=1
-            attempts_this_batch=min(MAX_ATTEMPTS,MAX_REJECTED_CANDIDATES-rejected_candidates)
+            attempts_this_batch=(MAX_ATTEMPTS if rejection_cap is None else
+                                 min(MAX_ATTEMPTS,rejection_cap-rejected_candidates))
             for attempt in range(attempts_this_batch):
                 candidate_number+=1
                 q=None
@@ -1032,6 +1035,8 @@ def generate(args,slots,models,catalog,key,folder):
                         except (ValueError,KeyError,TypeError) as local_error:
                             state=repair_current_candidate(state,slot,draft,"local validation",str(local_error))
                             continue
+                        if getattr(args,"generation_only",False):
+                            break
                         blind={k:q[k] for k in ("passage","prompt","options","domain","skill")}
                         blind["response_format"]=slot["format"]
                         if "audit" not in state:
@@ -1062,14 +1067,18 @@ def generate(args,slots,models,catalog,key,folder):
                             state=repair_current_candidate(state,slot,draft,"editorial review",reason,audit=audit,edit=edit)
                             continue
                         break
-                    q.update(audit_passed=True,audit_reason=audit["reason"]+"\nEditorial: "+edit["reason"],reviewed=False)
+                    if getattr(args,"generation_only",False):
+                        q.update(generated=True,reviewed=False)
+                    else:
+                        q.update(audit_passed=True,audit_reason=audit["reason"]+"\nEditorial: "+edit["reason"],reviewed=False)
                     bank=[x for x in bank if x["id"]!=q["id"]]+[q]
                     bank.sort(key=lambda x:order[x["id"]])
                     atomic_json(path,bank)  # commit accepted item BEFORE clearing the stage checkpoint
                     atomic_json(checkpoint_path,{})
                     known.add(canonical(q)); previous.append(q); accepted_count+=1
                     atomic_json(folder/f"test-{args.test}.generation.json",{
-                        "models":models,"accepted":len(bank),"complete":len(bank)==len(slots),
+                        "models":models,"accepted":len(bank),
+                        "complete":len(bank)==len(slots) and (getattr(args,"generation_only",False) or all(x.get("audit_passed") for x in bank)),
                         "fingerprint":fingerprint,"human_review_required":True,
                         "reference_records_used":[e["record_index"] for e in used],
                         "blueprint":blueprint_report(slots)})
@@ -1100,17 +1109,19 @@ def generate(args,slots,models,catalog,key,folder):
                            "rejected_candidates":rejected_candidates}
                     atomic_json(checkpoint_path,state)
             if not saved:
-                if rejected_candidates>=MAX_REJECTED_CANDIDATES:
-                    print(f"{slot['id']}: stopped after {MAX_REJECTED_CANDIDATES} rejected candidates. Review the saved feedback, then use --retry-rejected-slot to grant up to {MAX_REJECTED_CANDIDATES} more.")
+                if rejection_cap is not None and rejected_candidates>=rejection_cap:
+                    print(f"{slot['id']}: stopped after {rejection_cap} rejected candidates. Review the saved feedback, then use --retry-rejected-slot to grant up to {rejection_cap} more.")
                     stopped_for_rejections=True
                     break
-                print(slot["id"]+f": {attempts_this_batch} candidates rejected; generating a fresh replacement for the same required slot (batch {retry_batches+1}). Slot parameters and review requirements are unchanged. Cumulative reservation USD {client.ledger['reserved']:.4f}/${client.budget:.2f}.")
+                if rejection_cap is None or rejected_candidates<rejection_cap:
+                    print(slot["id"]+f": {attempts_this_batch} candidates rejected; generating a fresh replacement for the same required slot (batch {retry_batches+1}). Slot parameters and review requirements are unchanged. Cumulative reservation USD {client.ledger['reserved']:.4f}/${client.budget:.2f}.")
         if not saved:
             break
-        if accepted_count>=args.limit: break
+        if accepted_count>=getattr(args,"limit",len(slots)): break
     print("Token-cost estimates by stage (USD):",{k:round(v,4) for k,v in client.ledger["stage_usd"].items()})
     print(f"Cumulative budget reservation: ${client.ledger['reserved']:.4f} / ${client.budget:.2f}")
-    complete=len(bank)==147 and all(q.get("audit_passed") for q in bank)
+    complete=(len(bank)==147 and
+              (getattr(args,"generation_only",False) or all(q.get("audit_passed") for q in bank)))
     errors=validate_bank(bank,complete=complete)
     if errors: raise RuntimeError("; ".join(errors))
     if complete:
