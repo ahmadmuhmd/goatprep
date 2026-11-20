@@ -54,7 +54,7 @@ export default function Page(){
  },[tab]);
  async function login(){
   if(!supabase){setNotice('Google sign-in is being prepared. Please check back soon.');return;}
-  const {error}=await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+'/#home'}});
+  const {error}=await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+'/'}});
   if(error)setNotice(error.message);
  }
  async function run(action:()=>Promise<void>){setBusy(true);setNotice('');try{await action();}catch(e){setNotice((e as Error).message);}finally{setBusy(false);}}
