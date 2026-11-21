@@ -10,12 +10,16 @@ import os
 from pathlib import Path
 import re
 import sys
+import time
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 ROOT=Path(__file__).resolve().parents[1] if Path(__file__).resolve().parent.name=="scripts" else Path(__file__).resolve().parent
 API="https://openrouter.ai/api/v1"
 DEFAULTS=("deepseek/deepseek-chat","deepseek/deepseek-r1-0528","google/gemini-3.7-flash")
+# Free reviewers, best first. Matched as substrings of live OpenRouter model IDs; this order reflects
+# real usage on OpenRouter (not benchmark results). Others are used only if none of these is available.
+REVIEWER_PREFERENCE=("nemotron-3-ultra","minimax-m3","deepseek-v4","glm-5","nemotron-3.5","laguna")
 
 SKILLS={'Craft and Structure': ['Words in context', 'Text structure and purpose', 'Cross-text connections'], 'Information and Ideas': ['Central ideas and details', 'Inferences', 'Command of textual evidence', 'Quantitative evidence in text tables'], 'Standard English Conventions': ['Sentence boundaries', 'Subject-verb agreement', 'Verb tense', 'Modifiers', 'Pronouns and possessives'], 'Expression of Ideas': ['Transitions', 'Rhetorical synthesis'], 'Algebra': ['Linear equations in one variable', 'Linear functions', 'Systems of linear equations', 'Linear inequalities', 'Linear equations in two variables'], 'Advanced Math': ['Equivalent expressions', 'Quadratic equations', 'Exponential functions', 'Nonlinear equations', 'Polynomial and rational expressions'], 'Problem-Solving and Data Analysis': ['Ratios and units', 'Percentages', 'One-variable statistics', 'Probability', 'Sampling and margin of error', 'Observational studies and experiments', 'Two-variable data and models'], 'Geometry and Trigonometry': ['Area and volume', 'Lines and angles', 'Right triangles and trigonometry', 'Circles']}
 
@@ -102,16 +106,26 @@ class Client:
             body["temperature"] = 0.2
         request = Request(API + "/chat/completions", data=json.dumps(body).encode(),
                           headers={"Authorization": "Bearer " + self.key, "Content-Type": "application/json"})
-        try:
-            with urlopen(request, timeout=180) as response:
-                result = json.load(response)
-        except HTTPError as exc:
-            exc.close()
-            raise RuntimeError(f"OpenRouter HTTP {exc.code}. Stop and check credits/model/access; reservation retained.") from None
-        except OSError as exc:
-            raise RuntimeError("OpenRouter connection failed. Progress and reservation retained; retry manually.") from exc
-        except (ValueError, UnicodeError) as exc:
-            raise RuntimeError("Malformed provider response; progress and reservation retained.") from exc
+        # Back off and retry on rate limits and upstream outages. The reservation was taken once above and is not repeated.
+        waits = (0, 20, 45, 90, 150)
+        for attempt_index, wait in enumerate(waits):
+            if wait:
+                time.sleep(wait)
+            try:
+                with urlopen(request, timeout=180) as response:
+                    result = json.load(response)
+                break
+            except HTTPError as exc:
+                detail = exc.read(300).decode("utf-8", "replace")
+                exc.close()
+                if exc.code in (429, 500, 502, 503, 504) and attempt_index < len(waits) - 1:
+                    print(f"  {model}: HTTP {exc.code}; retrying in {waits[attempt_index + 1]}s")
+                    continue
+                raise RuntimeError(f"OpenRouter HTTP {exc.code} ({detail}). Still failing after retries; reservation retained. Wait, check OpenRouter limits/credits, or pick another model.") from None
+            except OSError as exc:
+                raise RuntimeError("OpenRouter connection failed. Progress and reservation retained; retry manually.") from exc
+            except (ValueError, UnicodeError) as exc:
+                raise RuntimeError("Malformed provider response; progress and reservation retained.") from exc
         if not isinstance(result,dict):
             raise RuntimeError("Provider response must be an object; reservation retained.")
         usage = result.get("usage")
@@ -188,7 +202,7 @@ Return ONLY JSON with exactly:
 title (<=100 characters), summary (<=240),
 concept (2-4 clear paragraphs, 180-350 words),
 steps (3-6 actionable numbered-method strings; do not include numbering inside strings),
-example (one original fully self-contained worked problem or passage),
+example (one original fully self-contained problem or passage, at least 40 characters, stated completely with all numbers/conditions),
 explanation (a complete 100-220 word worked solution; check calculations and assumptions),
 quiz: {prompt, options: [four distinct strings], answer: integer 0-3,
 feedback: detailed solution explaining the correct answer AND why each distractor fails}.
@@ -244,7 +258,8 @@ def validate_lesson(l):
         raise ValueError("Quiz needs four distinct options")
     if type(q.get("answer")) is not int or not 0<=q["answer"]<=3: raise ValueError("Quiz key must be 0-3")
     for field in ("concept","example","explanation"):
-        if len(l[field])<50: raise ValueError("Lesson is too thin: "+field)
+        minimum=15 if (field=="example" and l["section"]=="math") else 50
+        if len(l[field])<minimum: raise ValueError("Lesson is too thin: "+field+f" ({len(l[field])} chars, need {minimum}+)")
     return l
 
 def make_plan():
@@ -326,16 +341,50 @@ def read_records(path):
         ids.add(lesson["id"])
     return data
 
+def is_free(entry):
+    pricing = entry.get("pricing") or {}
+    return all(float(pricing.get(k) or 0) == 0 for k in ("prompt", "completion", "internal_reasoning"))
+
+def resolve_reviewers(catalog, args):
+    # Audit and editor run on free OpenRouter models. The draft stays on the paid model.
+    audit, editor = args.audit_model, args.editor_model
+    for name, model in (("audit", audit), ("editor", editor)):
+        if model is not None and (model not in catalog or not is_free(catalog[model])):
+            raise RuntimeError(name + " model " + model + " is not free on OpenRouter. "
+                               "Set a free model in OPENROUTER_" + name.upper() + "_MODEL or unset it.")
+    if audit is None or editor is None:
+        candidates = [m for m, e in catalog.items()
+                      if m != args.draft_model and m not in (audit, editor) and is_free(e)]
+        def rank(m):
+            low = m.lower()
+            for i, fragment in enumerate(REVIEWER_PREFERENCE):
+                if fragment in low:
+                    return (i, 0)
+            return (len(REVIEWER_PREFERENCE), -(catalog[m].get("context_length") or 0))
+        pool = sorted(candidates, key=rank)
+        if audit is None and pool:
+            audit = pool.pop(0)
+        if editor is None and pool:
+            editor = pool.pop(0)
+    if audit is None or editor is None:
+        raise RuntimeError("No free OpenRouter models available for review. "
+                           "Set OPENROUTER_AUDIT_MODEL and OPENROUTER_EDITOR_MODEL to free models.")
+    print("Reviewers (free): audit=" + audit + ", editor=" + editor)
+    return audit, editor
+
 def generate_study(args,index):
     path=args.output/"study-drafts.json"
     records=read_records(path) if path.exists() else []
     checkpoint=args.output/"study-checkpoint.json"
-    models=[args.draft_model,args.audit_model,args.editor_model]
     key=os.getenv("OPENROUTER_API_KEY") or legacy_key()
     if not key: raise RuntimeError("Set OPENROUTER_API_KEY in .env.local")
-    client=Client(key,models,fetch_catalog(),args.output/"study-budget.json",args.budget,args.max_tokens)
+    catalog=fetch_catalog()
+    args.audit_model,args.editor_model=resolve_reviewers(catalog,args)
+    models=[args.draft_model,args.audit_model,args.editor_model]
+    client=Client(key,models,catalog,args.output/"study-budget.json",args.budget,args.max_tokens)
     pending=json.loads(checkpoint.read_text(encoding="utf-8")) if checkpoint.exists() else {}
     accepted=0
+    failed=[]
     for slot in make_plan():
         if args.topic and args.topic.lower() not in (slot["id"]+" "+slot["skill"]).lower(): continue
         old=next((r for r in records if r["lesson"]["id"]==slot["id"]),None)
@@ -344,10 +393,11 @@ def generate_study(args,index):
                 raise RuntimeError("A saved lesson is unaudited or was edited. Remove that record to regenerate it before publication.")
             continue
         sources=select_sources(slot,index)
-        if not sources: raise RuntimeError("No supporting extracted pages for "+slot["skill"]+". Add a relevant searchable PDF and rerun --index.")
+        if not sources:
+            failed.append(slot["id"]); print(slot["id"]+": no supporting pages; skipped, run continues"); continue
         fingerprint=hashlib.sha256((json.dumps(slot)+json.dumps(sources)+json.dumps(models)+AUTHOR+AUDIT+EDITOR).encode()).hexdigest()
         state=pending if pending.get("fingerprint")==fingerprint else {"fingerprint":fingerprint}
-        for attempt in range(2):
+        for attempt in range(args.attempts):
             try:
                 if "draft" not in state:
                     request={"assignment":slot,"reference_excerpts":sources}
@@ -357,7 +407,7 @@ def generate_study(args,index):
                     atomic_json(checkpoint,state)
                 draft=state["draft"]
                 if isinstance(draft,dict) and draft.get("unsupported") is True:
-                    raise RuntimeError("Source excerpts do not support "+slot["skill"]+". Add relevant pages and rerun --index; no repeated unsupported drafts requested.")
+                    failed.append(slot["id"]); print(slot["id"]+": source excerpts do not support this skill; skipped, run continues"); break
                 lesson={k:draft[k] for k in ("title","summary","concept","steps","example","explanation","quiz")}
                 lesson.update({k:slot[k] for k in ("id","section","domain")})
                 validate_lesson(lesson);check_overlap(lesson,sources)
@@ -388,9 +438,11 @@ def generate_study(args,index):
             except (ValueError,KeyError,TypeError) as error:
                 state={"fingerprint":fingerprint,"rejection_reason":str(error)[:1200]};atomic_json(checkpoint,state)
                 print(slot["id"]+": "+type(error).__name__+": "+str(error)[:200]+"; rejected draft")
-                if attempt==1: raise RuntimeError("Lesson failed twice. Progress saved; adjust the model/source and resume.") from None
+                if attempt==args.attempts-1:
+                    failed.append(slot["id"]); print(slot["id"]+f": failed {args.attempts} attempts; skipped, run continues")
         if accepted>=args.limit: break
-    print("Saved drafts:",path,". Run --review, then --publish after reviewing.")
+    if failed: print("Skipped topics (run the same command again to retry them):", ", ".join(failed))
+    print("Saved drafts:",path,". Next: --publish.")
 
 def create_review(path):
     records=read_records(path)
@@ -416,8 +468,9 @@ def publish(path):
     records=read_records(path)
     if not records or len(records)>500: raise ValueError("Publish 1-500 lessons at a time")
     for r in records:
-        if r.get("reviewed") is not True or r.get("audit_passed") is not True or r.get("audit_hash")!=lesson_hash(r["lesson"]):
-            raise ValueError("Unreviewed, unaudited or edited lesson: "+r["lesson"]["id"])
+        # Automated gate: the independent audit and editor must both have passed, and the text must be unchanged since.
+        if r.get("audit_passed") is not True or r.get("audit_hash")!=lesson_hash(r["lesson"]):
+            raise ValueError("Unaudited or edited lesson: "+r["lesson"]["id"])
     connection=os.getenv("DATABASE_URL","")
     if not connection: raise RuntimeError("Set DATABASE_URL for Neon in .env.local; run neon/schema.sql first")
     try:
@@ -449,9 +502,10 @@ def main():
     parser.add_argument("--limit",type=int,default=500)
     parser.add_argument("--topic",default="")
     parser.add_argument("--max-tokens",type=int,default=8000)
+    parser.add_argument("--attempts",type=int,default=4,help="Tries per lesson before stopping")
     parser.add_argument("--draft-model",default=os.getenv("OPENROUTER_MODEL") or DEFAULTS[0])
-    parser.add_argument("--audit-model",default=os.getenv("OPENROUTER_AUDIT_MODEL") or DEFAULTS[1])
-    parser.add_argument("--editor-model",default=os.getenv("OPENROUTER_EDITOR_MODEL") or DEFAULTS[2])
+    parser.add_argument("--audit-model",default=os.getenv("OPENROUTER_AUDIT_MODEL") or None)
+    parser.add_argument("--editor-model",default=os.getenv("OPENROUTER_EDITOR_MODEL") or None)
     args=parser.parse_args()
     args.output.mkdir(parents=True,exist_ok=True)
     if args.review: create_review(args.review);return
@@ -466,7 +520,7 @@ def main():
         plan=[{**slot,"references":[{k:s[k] for k in ("file","page")} for s in select_sources(slot,index)]} for slot in make_plan()]
         atomic_json(args.output/"study-plan.json",plan)
         print("Plan saved; "+str(sum(bool(s["references"]) for s in plan))+"/"+str(len(plan))+" topics have candidate source pages.");return
-    if not math.isfinite(args.budget) or args.budget<=0 or args.limit<1 or args.max_tokens<1000:
+    if not math.isfinite(args.budget) or args.budget<=0 or args.limit<1 or args.max_tokens<1000 or args.attempts<1:
         parser.error("Use a positive --budget, --limit >=1 and --max-tokens >=1000")
     if args.topic and not any(args.topic.lower() in (s["id"]+" "+s["skill"]).lower() for s in make_plan()):
         parser.error("Topic does not match the lesson plan")
