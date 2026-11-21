@@ -15,6 +15,5 @@ export default function ProductShot() {
    </div>
    <div className="shot-foot"><span>Question 4 of 27</span><em>Next</em></div>
   </div>
-  <div className="shot-score"><small>Total score</small><b>1440</b><span>R&amp;W 710 · Math 730</span></div>
  </div>;
 }

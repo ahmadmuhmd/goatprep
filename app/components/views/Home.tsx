@@ -32,31 +32,19 @@ function Landing({ctx}: {ctx: AppCtx}) {
 
   <FeaturedReviews reviews={ctx.reviews}/>
 
-  <section className="features section">
-   <button className="feature f-dark rise" onClick={() => ctx.navigate('practice')}>
-    <span className="ico"><Target size={22}/></span>
-    <h3>Practice tests</h3>
-    <div className="mini-score"><span className="big-num">1440</span><span>R&W 710 · Math 730</span></div>
-    <span className="link-light">Start Test 1 <ArrowRight size={16}/></span>
-   </button>
-   <button className="feature f-green rise" style={{'--i': 1} as React.CSSProperties} onClick={() => ctx.navigate('daily')}>
-    <span className="ico"><CalendarCheck size={22}/></span>
-    <h3>Daily questions</h3>
-    <div className="mini-streak">{['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => <i key={i} className={i < 5 ? 'on' : ''}>{d}</i>)}</div>
-    <span className="link-light">Today&apos;s two <ArrowRight size={16}/></span>
-   </button>
-   <button className="feature rise" style={{'--i': 2} as React.CSSProperties} onClick={() => ctx.navigate('study')}>
-    <span className="ico"><BookOpen size={22}/></span>
-    <h3>Lessons + GOATTricks</h3>
-    <div className="mini-bars">{[86, 64, 92, 48].map((w, i) => <i key={i}><b style={{width: w + '%'}}/></i>)}</div>
-    <span className="link">Open Study <ArrowRight size={16}/></span>
-   </button>
-   <button className="feature rise" style={{'--i': 3} as React.CSSProperties} onClick={() => ctx.navigate('words', word.word)}>
-    <span className="ico"><Languages size={22}/></span>
-    <h3>Word of the day</h3>
-    <div className="mini-word"><b>{word.word}</b><span>{word.def}</span></div>
-    <span className="link">Flashcards <ArrowRight size={16}/></span>
-   </button>
+  <section className="section">
+   <div className="links4">
+    {[
+     {icon: <Target size={22}/>, t: 'Practice tests', d: 'Full adaptive tests, scored like test day', go: () => ctx.navigate('practice')},
+     {icon: <CalendarCheck size={22}/>, t: 'Daily questions', d: 'One Reading & Writing and one Math, every day', go: () => ctx.navigate('daily')},
+     {icon: <BookOpen size={22}/>, t: 'Lessons', d: 'Every SAT skill, with a GOATTrick shortcut', go: () => ctx.navigate('study')},
+     {icon: <Languages size={22}/>, t: 'SAT words', d: `Today: ${word.word}, ${word.def}`, go: () => ctx.navigate('words', word.word)},
+    ].map((x, i) => <button key={x.t} className="link-card rise" style={{'--i': i} as React.CSSProperties} onClick={x.go}>
+     <span className="ico">{x.icon}</span>
+     <span className="lc-text"><b>{x.t}</b><span>{x.d}</span></span>
+     <ArrowRight size={20}/>
+    </button>)}
+   </div>
   </section>
  </>;
 }
