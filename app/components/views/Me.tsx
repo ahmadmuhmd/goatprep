@@ -51,16 +51,6 @@ export default function Me({ctx}: {ctx: AppCtx}) {
    <Stat i={5} icon={<Languages size={18}/>} label="Words known" value={known} note={'of ' + WORDS.length}/>
   </div>
 
-  <section className="section">
-   <div className="section-head"><h2>Score history</h2>{scores.length > 0 && <button className="link" onClick={() => ctx.navigate('practice')}>All tests <ArrowRight size={15}/></button>}</div>
-   <div className="card card-pad">
-    {scores.length ? <ScoreChart scores={scores} goal={p?.target_score ?? null} start={p?.start_score ?? null}/> : <div className="empty">Your scores will chart here. <button className="link" onClick={() => ctx.navigate('practice')}>Take a test</button></div>}
-    {done.length > 0 && <div className="history" style={{marginTop: 16}}>{[...done].reverse().map(a => <button key={a.id} className="hist-row" style={{border: 0, background: 'var(--sunk)'}} onClick={() => ctx.openAttempt(a.id)}>
-     <span><b>{ctx.tests.find(t => t.id === a.test_id)?.title || a.test_id}</b><br/><span className="muted" style={{fontSize: 13}}>R&W {a.rw_score} · Math {a.math_score} · {new Date(a.completed_at!).toLocaleDateString()}</span></span>
-     <span className="big-num">{totalScore(a)}</span><ChevronRight size={18}/>
-    </button>)}</div>}
-   </div>
-  </section>
 
   <section className="section">
    <div className="section-head"><h2>Skill progress</h2></div>

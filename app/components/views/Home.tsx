@@ -18,14 +18,11 @@ function Landing({ctx}: {ctx: AppCtx}) {
    <div className="rise">
     <span className="chip chip-green">Free · Bluebook-style · Adaptive</span>
     <h1>The Digital SAT, <em>practiced for real.</em></h1>
-    <p>Full adaptive tests that look and score like test day, plus everything you need between them.</p>
     <div className="hero-cta">
      <button className="btn btn-primary btn-lg" onClick={() => ctx.navigate('practice')}><Play size={18}/> Take a free test</button>
      <button className="btn btn-ghost btn-lg" onClick={ctx.login}>Sign in with Google</button>
     </div>
-    <div className="hero-proof">
-     <span><b>{ready}</b> full tests</span><span><b>{ctx.lessons.length}</b> lessons</span><span><b>{WORDS.length}</b> words</span>
-    </div>
+
    </div>
    <div className="hero-art rise" style={{'--i': 2} as React.CSSProperties}><ProductShot/></div>
   </section>
