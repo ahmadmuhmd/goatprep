@@ -25,7 +25,7 @@ import Exam from './components/exam/Exam';
 
 const NAV: {id: Tab; label: string}[] = [
  {id: 'home', label: 'Home'}, {id: 'study', label: 'Study'}, {id: 'words', label: 'Words'},
- {id: 'practice', label: 'Practice'}, {id: 'daily', label: 'Daily'}, {id: 'jerry', label: 'Jerry'},
+ {id: 'practice', label: 'Practice'}, {id: 'daily', label: 'Daily'},
 ];
 const TABS: {id: Tab; label: string; icon: typeof HomeIcon}[] = [
  {id: 'home', label: 'Home', icon: HomeIcon}, {id: 'study', label: 'Study', icon: BookOpen},
@@ -135,7 +135,7 @@ export default function Page() {
   </main>
   <footer className="footer"><div className="footer-in"><span>© GOATPrep · Free Digital SAT practice</span><span>Not affiliated with College Board. SAT® is a trademark of College Board.</span></div></footer>
 
-  {tab !== 'jerry' && <button className="jerry-fab hide-m" onClick={() => setJerryOpen(true)} aria-label="Ask Jerry"><JerryHead size={34} tone="green"/></button>}
+  {tab !== 'jerry' && <button className="jerry-fab hide-m" onClick={() => setJerryOpen(true)} aria-label="Ask Jerry"><JerryHead size={36} tone="green"/><span>Ask Jerry</span></button>}
   <nav className="tabbar" aria-label="Tabs">
    <div className="glass-pill">
     <span className="glass-thumb" style={{transform: `translateX(${Math.max(0, TABS.findIndex(t => t.id === tab)) * 100}%)`, opacity: TABS.some(t => t.id === tab) ? 1 : 0}}/>

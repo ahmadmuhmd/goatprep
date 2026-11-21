@@ -1,10 +1,10 @@
 "use client";
-import {ArrowRight, BookOpen, CalendarCheck, Flame, Languages, Play, Target} from 'lucide-react';
+import {ArrowRight, BookOpen, CalendarCheck, Flame, Languages, Play, Target, Timer} from 'lucide-react';
 import type {AppCtx} from '../site/context';
 import {daysUntil, firstName, totalScore} from '../site/context';
-import DailyCard from './DailyCard';
 import {WORDS, wordOfTheDay} from '@/lib/vocab';
 import {FeaturedReviews} from './Community';
+import ProductShot from './ProductShot';
 
 export default function Home({ctx}: {ctx: AppCtx}) {
  return ctx.user ? <Dashboard ctx={ctx}/> : <Landing ctx={ctx}/>;
@@ -12,33 +12,53 @@ export default function Home({ctx}: {ctx: AppCtx}) {
 
 function Landing({ctx}: {ctx: AppCtx}) {
  const ready = ctx.tests.length || 12;
+ const word = wordOfTheDay();
  return <>
   <section className="hero">
    <div className="rise">
+    <span className="chip chip-green">Free · Bluebook-style · Adaptive</span>
     <h1>The Digital SAT, <em>practiced for real.</em></h1>
-    <p>{ready} adaptive tests in a Bluebook-style app, plus lessons, daily questions and words. Free.</p>
+    <p>Full adaptive tests that look and score like test day, plus everything you need between them.</p>
     <div className="hero-cta">
-     <button className="btn btn-primary btn-lg" onClick={() => ctx.navigate('practice')}><Play size={18}/> Take a practice test</button>
-     <button className="btn btn-ghost btn-lg" onClick={() => ctx.navigate('study')}>Study lessons</button>
+     <button className="btn btn-primary btn-lg" onClick={() => ctx.navigate('practice')}><Play size={18}/> Take a free test</button>
+     <button className="btn btn-ghost btn-lg" onClick={ctx.login}>Sign in with Google</button>
+    </div>
+    <div className="hero-proof">
+     <span><b>{ready}</b> full tests</span><span><b>{ctx.lessons.length}</b> lessons</span><span><b>{WORDS.length}</b> words</span>
     </div>
    </div>
-   <div className="hero-demo rise" style={{'--i': 2} as React.CSSProperties}><DailyCard section="rw" compact/></div>
+   <div className="hero-art rise" style={{'--i': 2} as React.CSSProperties}><ProductShot/></div>
   </section>
+
   <FeaturedReviews reviews={ctx.reviews}/>
-  <section className="bento section">
-   <Tile i={1} dark icon={<Target size={22}/>} title="Practice tests" value={String(ready)} onClick={() => ctx.navigate('practice')}/>
-   <Tile i={2} icon={<BookOpen size={22}/>} title="Lessons" value={String(ctx.lessons.length)} onClick={() => ctx.navigate('study')}/>
-   <Tile i={3} green icon={<CalendarCheck size={22}/>} title="Daily questions" value="2/day" onClick={() => ctx.navigate('daily')}/>
-   <Tile i={4} icon={<Languages size={22}/>} title="SAT words" value={String(WORDS.length)} onClick={() => ctx.navigate('words')}/>
+
+  <section className="features section">
+   <button className="feature f-dark rise" onClick={() => ctx.navigate('practice')}>
+    <span className="ico"><Target size={22}/></span>
+    <h3>Practice tests</h3>
+    <div className="mini-score"><span className="big-num">1440</span><span>R&W 710 · Math 730</span></div>
+    <span className="link-light">Start Test 1 <ArrowRight size={16}/></span>
+   </button>
+   <button className="feature f-green rise" style={{'--i': 1} as React.CSSProperties} onClick={() => ctx.navigate('daily')}>
+    <span className="ico"><CalendarCheck size={22}/></span>
+    <h3>Daily questions</h3>
+    <div className="mini-streak">{['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => <i key={i} className={i < 5 ? 'on' : ''}>{d}</i>)}</div>
+    <span className="link-light">Today&apos;s two <ArrowRight size={16}/></span>
+   </button>
+   <button className="feature rise" style={{'--i': 2} as React.CSSProperties} onClick={() => ctx.navigate('study')}>
+    <span className="ico"><BookOpen size={22}/></span>
+    <h3>Lessons + GOATTricks</h3>
+    <div className="mini-bars">{[86, 64, 92, 48].map((w, i) => <i key={i}><b style={{width: w + '%'}}/></i>)}</div>
+    <span className="link">Open Study <ArrowRight size={16}/></span>
+   </button>
+   <button className="feature rise" style={{'--i': 3} as React.CSSProperties} onClick={() => ctx.navigate('words', word.word)}>
+    <span className="ico"><Languages size={22}/></span>
+    <h3>Word of the day</h3>
+    <div className="mini-word"><b>{word.word}</b><span>{word.def}</span></div>
+    <span className="link">Flashcards <ArrowRight size={16}/></span>
+   </button>
   </section>
  </>;
-}
-
-function Tile({icon, title, value, onClick, dark, green, i}: {icon: React.ReactNode; title: string; value: string; onClick: () => void; dark?: boolean; green?: boolean; i: number}) {
- return <button className={'tile rise ' + (dark ? 'tile-dark' : green ? 'tile-green' : '')} style={{'--i': i} as React.CSSProperties} onClick={onClick}>
-  <span className="ico">{icon}</span>
-  <span><span className="big-num">{value}</span><h3>{title}</h3></span>
- </button>;
 }
 
 function Dashboard({ctx}: {ctx: AppCtx}) {
@@ -48,55 +68,65 @@ function Dashboard({ctx}: {ctx: AppCtx}) {
  const days = daysUntil(ctx.profile?.test_date);
  const target = ctx.profile?.target_score ?? null;
  const score = latest ? totalScore(latest) : null;
+ const doneIds = new Set(finished.map(a => a.test_id));
+ const nextTest = ctx.tests.find(t => !doneIds.has(t.id)) ?? ctx.tests[0];
  const nextLesson = ctx.lessons.find(l => !ctx.completed.includes(l.id) && (ctx.profile?.focus === 'math' ? l.section === 'math' : ctx.profile?.focus === 'rw' ? l.section === 'rw' : true));
  const word = wordOfTheDay();
+ const answeredToday = !!ctx.daily?.days.includes(new Date().toISOString().slice(0, 10));
  const hour = new Date().getHours();
- const hello = hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
+ const hello = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
  return <>
-  <div className="greet rise">
-   <h1>{hello}{name ? ', ' + name : ''}.</h1>
-   <div className="facts">
-    {days !== null && days >= 0 && <span className="chip chip-green">{days === 0 ? 'Test day' : days + ' days to test day'}</span>}
-    {ctx.daily && ctx.daily.streak > 0 && <span className="chip"><Flame size={14}/> {ctx.daily.streak}-day streak</span>}
+  <section className="banner rise">
+   <div className="banner-copy">
+    <span className="label" style={{color: 'rgba(250,247,240,.7)'}}>{hello}</span>
+    <h1>{name || 'Welcome back'}.</h1>
+    <div className="banner-stats">
+     <div><span className="big-num">{score ?? '—'}</span><small>Latest score</small></div>
+     <div><span className="big-num">{target ?? '—'}</span><small>Goal</small></div>
+     <div><span className="big-num">{days !== null && days >= 0 ? days : '—'}</span><small>Days to test</small></div>
+     <div><span className="big-num">{ctx.daily?.streak ?? 0}</span><small>Day streak</small></div>
+    </div>
+    {target && <div className="banner-track"><i style={{width: ((Math.max(400, score ?? 400) - 400) / 1200 * 100) + '%'}}/><b style={{left: `calc(${(target - 400) / 1200 * 100}% - 2px)`}}/></div>}
    </div>
-  </div>
-
-  {active && <button className="resume rise" style={{width: '100%', textAlign: 'left', marginBottom: 14}} onClick={() => ctx.openAttempt(active.id)}>
-   <Play size={22}/>
-   <span style={{flex: 1}}><b>Resume {ctx.tests.find(t => t.id === active.test_id)?.title || 'your test'}</b><br/><span className="muted">{['Reading and Writing · Module 1', 'Reading and Writing · Module 2', 'Break', 'Math · Module 1', 'Math · Module 2'][active.stage] || ''}</span></span>
-   <ArrowRight size={20}/>
-  </button>}
+  </section>
 
   <div className="dash">
-   <div className="card score-card rise" style={{'--i': 1} as React.CSSProperties}>
-    <span className="label">Latest score</span>
-    <div className="score-row">
-     <span className="big-num">{score ?? '—'}</span>
-     {latest && <span className="muted" style={{paddingBottom: 8}}>R&W {latest.rw_score} · Math {latest.math_score}</span>}
-    </div>
-    {target ? <>
-     <div className="goal-track" aria-label={'Target ' + target}>
-      <i style={{width: ((Math.max(400, score ?? 400) - 400) / 1200 * 100) + '%'}}/>
-      <b style={{left: `calc(${(target - 400) / 1200 * 100}% - 2px)`}}/>
-     </div>
-     <div className="goal-scale"><span>400</span><span>Goal {target}</span><span>1600</span></div>
-    </> : <button className="link" onClick={() => ctx.navigate('me')}>Set a target score <ArrowRight size={16}/></button>}
-    {!latest && <button className="btn btn-primary" onClick={() => ctx.navigate('practice')}><Play size={17}/> Take your first test</button>}
-   </div>
-   <div className="rise" style={{'--i': 2} as React.CSSProperties}><DailyCard section={new Date().getDate() % 2 ? 'math' : 'rw'} compact/></div>
-   <div style={{display: 'grid', gap: 14}}>
-    {nextLesson && <button className="card card-pad rise" style={{'--i': 3, textAlign: 'left'} as React.CSSProperties} onClick={() => ctx.navigate('study', nextLesson.id)}>
-     <span className="label">Up next</span>
-     <h3 style={{fontSize: 22, margin: '8px 0 4px'}}>{nextLesson.title}</h3>
-     <span className="muted" style={{fontSize: 14}}>{nextLesson.domain}</span>
-    </button>}
-    <button className="card word-card rise" style={{'--i': 4, textAlign: 'left'} as React.CSSProperties} onClick={() => ctx.navigate('words', word.word)}>
-     <span className="label">Word of the day</span>
-     <span className="w">{word.word}</span>
-     <span className="muted">{word.def}</span>
-    </button>
-   </div>
+   {active ? <button className="action a-dark rise" onClick={() => ctx.openAttempt(active.id)}>
+    <span className="ico"><Play size={22}/></span>
+    <span className="label">Test in progress</span>
+    <h3>{ctx.tests.find(t => t.id === active.test_id)?.title || 'Your test'}</h3>
+    <span className="sub">{['Reading and Writing · Module 1', 'Reading and Writing · Module 2', 'Break', 'Math · Module 1', 'Math · Module 2'][active.stage]}</span>
+    <span className="go">Resume where you left off <ArrowRight size={17}/></span>
+   </button> : <button className="action a-dark rise" onClick={() => nextTest ? ctx.beginTest(nextTest) : ctx.navigate('practice')}>
+    <span className="ico"><Timer size={22}/></span>
+    <span className="label">Next practice test</span>
+    <h3>{nextTest?.title || 'Practice Test 1'}</h3>
+    <span className="sub">2h 14m · adaptive · scored like test day</span>
+    <span className="go">Start <ArrowRight size={17}/></span>
+   </button>}
+   <button className="action a-green rise" style={{'--i': 1} as React.CSSProperties} onClick={() => ctx.navigate('daily')}>
+    <span className="ico"><Flame size={22}/></span>
+    <span className="label">Daily questions</span>
+    <h3>{answeredToday ? 'Done for today' : '2 waiting for you'}</h3>
+    <span className="sub">{ctx.daily ? `${ctx.daily.correct}/${ctx.daily.answered} correct so far` : 'One Reading & Writing, one Math'}</span>
+    <span className="go">{answeredToday ? 'Review' : 'Answer now'} <ArrowRight size={17}/></span>
+   </button>
+   {nextLesson && <button className="action rise" style={{'--i': 2} as React.CSSProperties} onClick={() => ctx.navigate('study', nextLesson.id)}>
+    <span className="ico"><BookOpen size={22}/></span>
+    <span className="label">Up next in Study</span>
+    <h3>{nextLesson.title}</h3>
+    <span className="sub">{nextLesson.domain}</span>
+    <span className="go">Open lesson <ArrowRight size={17}/></span>
+   </button>}
+   <button className="action rise" style={{'--i': 3} as React.CSSProperties} onClick={() => ctx.navigate('words', word.word)}>
+    <span className="ico"><Languages size={22}/></span>
+    <span className="label">Word of the day</span>
+    <h3 className="serif-word">{word.word}</h3>
+    <span className="sub">{word.def}</span>
+    <span className="go">Flashcards <ArrowRight size={17}/></span>
+   </button>
   </div>
-  <div className="section"><FeaturedReviews reviews={ctx.reviews}/></div>
+
+  <div className="section"><FeaturedReviews reviews={ctx.reviews} compact/></div>
  </>;
 }

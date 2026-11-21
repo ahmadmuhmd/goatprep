@@ -42,22 +42,30 @@ export function ManageReviews({ctx}: {ctx: AppCtx}) {
  </>;
 }
 
-export function FeaturedReviews({reviews}: {reviews: Review[]}) {
+export function FeaturedReviews({reviews, compact = false}: {reviews: Review[]; compact?: boolean}) {
+ const [i, setI] = useState(0), [paused, setPaused] = useState(false);
+ useEffect(() => {
+  if (reviews.length < 2 || paused) return;
+  const t = setInterval(() => setI(n => (n + 1) % reviews.length), 5500);
+  return () => clearInterval(t);
+ }, [reviews.length, paused]);
  if (!reviews.length) return null;
  const avg = reviews.reduce((n, r) => n + r.rating, 0) / reviews.length;
- return <section className="reviews rise" aria-labelledby="reviews-title">
-  <div className="reviews-head">
-   <h2 id="reviews-title">What students say</h2>
-   <span className="reviews-score"><span className="stars">{[1, 2, 3, 4, 5].map(n => <Star key={n} size={16} fill={avg >= n - .25 ? 'currentColor' : 'none'}/>)}</span><b>{avg.toFixed(1)}</b><span className="muted">· {reviews.length} review{reviews.length > 1 ? 's' : ''}</span></span>
+ const r = reviews[i % reviews.length];
+ return <section className={'carousel rise ' + (compact ? 'compact' : '')} aria-roledescription="carousel" aria-label="Student reviews" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+  <div className="carousel-side">
+   <span className="label" style={{color: 'inherit', opacity: .7}}>Student reviews</span>
+   <div className="carousel-score"><span className="big-num">{avg.toFixed(1)}</span><span className="stars">{[1, 2, 3, 4, 5].map(n => <Star key={n} size={18} fill={avg >= n - .25 ? 'currentColor' : 'none'}/>)}</span></div>
+   <span style={{opacity: .75, fontSize: 14}}>{reviews.length} verified review{reviews.length > 1 ? 's' : ''}</span>
   </div>
-  <div className="review-row">{reviews.map((r, i) => <figure className="review-card rise" key={r.id} style={{'--i': i} as React.CSSProperties}>
-   <span className="stars" aria-label={r.rating + ' out of 5 stars'}>{[1, 2, 3, 4, 5].map(n => <Star key={n} size={16} fill={r.rating >= n ? 'currentColor' : 'none'}/>)}</span>
-   <blockquote>{r.body}</blockquote>
+  <figure className="carousel-slide" key={r.id} aria-live="polite">
+   <span className="stars" aria-label={r.rating + ' out of 5 stars'}>{[1, 2, 3, 4, 5].map(n => <Star key={n} size={18} fill={r.rating >= n ? 'currentColor' : 'none'}/>)}</span>
+   <blockquote>“{r.body}”</blockquote>
    <figcaption>
     <span className="review-avatar" aria-hidden>{r.display_name.trim()[0]?.toUpperCase() || 'S'}</span>
     <span><b>{r.display_name}</b><span className="verified"><BadgeCheck size={14}/> Verified Google account</span></span>
-    <time className="muted" dateTime={r.created_at}>{new Date(r.created_at).toLocaleDateString(undefined, {month: 'short', year: 'numeric'})}</time>
    </figcaption>
-  </figure>)}</div>
+  </figure>
+  {reviews.length > 1 && <div className="carousel-dots">{reviews.map((x, n) => <button key={x.id} aria-label={'Review ' + (n + 1)} aria-current={n === i % reviews.length} onClick={() => setI(n)}><i style={n === i % reviews.length && !paused ? {animationDuration: '5.5s'} : undefined}/></button>)}</div>}
  </section>;
 }

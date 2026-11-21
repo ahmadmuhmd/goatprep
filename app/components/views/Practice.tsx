@@ -1,54 +1,59 @@
 "use client";
-import {ArrowRight, Clock, Lock, Play, RotateCcw} from 'lucide-react';
+import {ArrowRight, Check, Clock, Lock, Play, RotateCcw} from 'lucide-react';
 import type {AppCtx} from '../site/context';
 import {totalScore} from '../site/context';
 
-const STAGES = ['R&W · Module 1', 'R&W · Module 2', 'On break', 'Math · Module 1', 'Math · Module 2'];
+const STAGES = ['Reading and Writing · Module 1', 'Reading and Writing · Module 2', 'On break', 'Math · Module 1', 'Math · Module 2'];
 
 export default function Practice({ctx}: {ctx: AppCtx}) {
  const slots = Math.max(12, ...ctx.tests.map(t => t.number));
  const finished = ctx.attempts.filter(a => a.completed_at);
+ const active = ctx.attempts.find(a => !a.completed_at);
+ const doneIds = new Set(finished.map(a => a.test_id));
+ const next = ctx.tests.find(t => !doneIds.has(t.id)) ?? ctx.tests[0];
+ const best = finished.length ? Math.max(...finished.map(a => totalScore(a) ?? 0)) : null;
+ const featured = active ? ctx.tests.find(t => t.id === active.test_id) : next;
  return <>
-  <div className="page-head">
-   <div><span className="label">Bluebook-style · adaptive</span><h1>Practice tests</h1></div>
-   <div className="facts">
-    <span className="chip"><Clock size={14}/> 2h 14m + break</span>
-    <span className="chip">98 questions</span>
-    <span className="chip">Desmos built in</span>
+  <div className="page-head"><div><span className="label">{finished.length} of {slots} completed{best ? ' · best ' + best : ''}</span><h1>Practice tests</h1></div></div>
+
+  {featured && <section className="next-test rise">
+   <div className="nt-num">{String(featured.number).padStart(2, '0')}</div>
+   <div className="nt-body">
+    <span className="label" style={{color: 'rgba(250,247,240,.7)'}}>{active ? 'In progress' : 'Up next'}</span>
+    <h2>{featured.title}</h2>
+    <p>{active ? STAGES[active.stage] + ' · your answers and time are saved' : 'Reading and Writing, a 10-minute break, then Math.'}</p>
+    <div className="nt-facts"><span><Clock size={15}/> 2h 14m</span><span>98 questions</span><span>Adaptive</span><span>Desmos + reference</span></div>
    </div>
-  </div>
-  <div className="tests">
-   {Array.from({length: slots}, (_, i) => {
-    const n = i + 1, t = ctx.tests.find(x => x.number === n);
-    const mine = t ? ctx.attempts.filter(a => a.test_id === t.id) : [];
-    const active = mine.find(a => !a.completed_at), best = mine.filter(a => a.completed_at)[0];
-    const score = best ? totalScore(best) : null;
-    return <article key={n} className={'test rise ' + (!t ? 'locked ' : '') + (best && !active ? 'done' : '')} style={{'--i': i % 8} as React.CSSProperties}>
-     <div className="test-top"><b>Test {String(n).padStart(2, '0')}</b>{!t ? <Lock size={16}/> : active ? <span className="chip chip-warn">In progress</span> : best ? <span className="chip" style={{background: 'rgba(255,255,255,.18)', color: '#fff'}}>Done</span> : null}</div>
-     <div className="test-body">
-      {score !== null && best ? <>
-       <div className="test-score"><span className="big-num">{score}</span><span className="muted">/ 1600</span></div>
-       <div className="test-split"><div><span>R&W</span>{best.rw_score}</div><div><span>Math</span>{best.math_score}</div></div>
-      </> : active ? <p className="muted">{STAGES[active.stage] || 'Saved'}</p> : <p className="muted">{t ? 'Not started' : 'Coming soon'}</p>}
-      {t && (active
-       ? <button className="btn btn-primary" onClick={() => ctx.openAttempt(active.id)}><Play size={16}/> Resume</button>
-       : best
-        ? <div style={{display: 'grid', gap: 8, marginTop: 'auto'}}>
-           <button className="btn btn-ink" onClick={() => ctx.openAttempt(best.id)}>Score details</button>
-           <button className="btn btn-ghost btn-sm" onClick={() => ctx.beginTest(t)}><RotateCcw size={15}/> Retake</button>
-          </div>
-        : <button className="btn btn-primary" onClick={() => ctx.beginTest(t)}><Play size={16}/> Start</button>)}
-     </div>
-    </article>;
-   })}
-  </div>
-  {ctx.user && finished.length > 0 && <section className="section">
-   <div className="section-head"><h2>History</h2></div>
-   <div className="history">{finished.map(a => <button key={a.id} className="hist-row" onClick={() => ctx.openAttempt(a.id)}>
-    <span><b>{ctx.tests.find(t => t.id === a.test_id)?.title || a.test_id}</b><br/><span className="muted" style={{fontSize: 14}}>{new Date(a.completed_at!).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'})}</span></span>
-    <span className="big-num">{totalScore(a)}</span><ArrowRight size={18}/>
-   </button>)}</div>
+   <button className="btn btn-lg nt-btn" onClick={() => active ? ctx.openAttempt(active.id) : ctx.beginTest(featured)}><Play size={18}/> {active ? 'Resume' : 'Start test'}</button>
   </section>}
-  {!ctx.user && <p className="muted" style={{marginTop: 20}}><button className="link" onClick={ctx.login}>Sign in with Google</button> to save scores and resume tests.</p>}
+
+  <section className="section">
+   <div className="section-head"><h2>All tests</h2></div>
+   <div className="test-tiles">
+    {Array.from({length: slots}, (_, i) => {
+     const n = i + 1, t = ctx.tests.find(x => x.number === n);
+     const mine = t ? ctx.attempts.filter(a => a.test_id === t.id) : [];
+     const run = mine.find(a => !a.completed_at), done = mine.find(a => a.completed_at);
+     const score = done ? totalScore(done) : null;
+     const state = !t ? 'locked' : run ? 'active' : done ? 'done' : 'new';
+     const open = () => !t ? undefined : run ? ctx.openAttempt(run.id) : done ? ctx.openAttempt(done.id) : ctx.beginTest(t);
+     return <div key={n} className={'tile-test rise s-' + state} style={{'--i': i % 6} as React.CSSProperties}>
+      <button className="tt-main" disabled={!t} onClick={open}>
+       <span className="tt-n">{String(n).padStart(2, '0')}</span>
+       <span className="tt-info">
+        <b>Test {n}</b>
+        <span>{state === 'locked' ? 'Coming soon' : state === 'active' ? STAGES[run!.stage] : state === 'done' ? `R&W ${done!.rw_score} · Math ${done!.math_score}` : 'Not started'}</span>
+       </span>
+       <span className="tt-end">{state === 'done' ? <span className="tt-score">{score}</span> : state === 'active' ? <span className="chip chip-warn">Resume</span> : state === 'locked' ? <Lock size={16}/> : <ArrowRight size={18}/>}</span>
+      </button>
+      {state === 'done' && <button className="tt-retake" onClick={() => ctx.beginTest(t!)} aria-label={'Retake test ' + n}><RotateCcw size={14}/> Retake</button>}
+     </div>;
+    })}
+   </div>
+   <p className="muted" style={{marginTop: 14, fontSize: 14, display: 'flex', gap: 14, flexWrap: 'wrap'}}>
+    <span><Check size={14} style={{display: 'inline', verticalAlign: -2}}/> Click a finished test to see its score report.</span>
+    {!ctx.user && <span><button className="link" onClick={ctx.login}>Sign in with Google</button> to save scores and resume tests.</span>}
+   </p>
+  </section>
  </>;
 }
