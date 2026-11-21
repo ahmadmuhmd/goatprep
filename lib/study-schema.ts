@@ -2,6 +2,7 @@ export type StudyLesson = {
  id:string;section:string;domain:string;title:string;summary:string;concept:string;
  steps:readonly string[];example:string;explanation:string;
  quiz:{prompt:string;options:readonly string[];answer:number;feedback:string};
+ goattrick?:{title:string;tool:string;steps:readonly string[];caution:string};
 };
 export const studyDomains:Record<string,readonly string[]>={
  rw:['Craft and Structure','Information and Ideas','Standard English Conventions','Expression of Ideas'],
@@ -19,8 +20,11 @@ export function parseStudyLesson(value:unknown):StudyLesson|null {
  if(typeof q.prompt!=='string'||!q.prompt.trim()||q.prompt.length>2000||typeof q.feedback!=='string'||!q.feedback.trim()||q.feedback.length>3000)return null;
  if(!Array.isArray(q.options)||q.options.length!==4||q.options.some(s=>typeof s!=='string'||!s.trim()||s.length>800)||new Set(q.options).size!==4)return null;
  if(!Number.isInteger(q.answer)||(q.answer as number)<0||(q.answer as number)>3)return null;
+ const gt=v.goattrick as Record<string,unknown>|undefined;
+ let goattrick:StudyLesson['goattrick'];
+ if(gt&&typeof gt==='object'&&typeof gt.title==='string'&&gt.title.length<=80&&typeof gt.tool==='string'&&typeof gt.caution==='string'&&gt.caution.length<=300&&Array.isArray(gt.steps)&&gt.steps.length>=2&&gt.steps.length<=6&&gt.steps.every(s=>typeof s==='string'&&s.length<=400))goattrick={title:gt.title,tool:gt.tool,steps:gt.steps as string[],caution:gt.caution};
  return {id:v.id as string,section:v.section as string,domain:v.domain as string,title:v.title as string,
  summary:v.summary as string,concept:v.concept as string,steps:v.steps as string[],
  example:v.example as string,explanation:v.explanation as string,
- quiz:{prompt:q.prompt,options:q.options as string[],answer:q.answer as number,feedback:q.feedback}};
+ quiz:{prompt:q.prompt,options:q.options as string[],answer:q.answer as number,feedback:q.feedback},goattrick};
 }

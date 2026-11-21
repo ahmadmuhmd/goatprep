@@ -482,7 +482,7 @@ def publish(path):
         with psycopg.connect(connection,connect_timeout=30,sslmode="require") as conn:
             with conn.cursor() as cursor:
                 for i,r in enumerate(records):
-                    cursor.execute("INSERT INTO public.study_lessons(id,payload,provenance,published,sort_order) VALUES(%s,%s,%s,true,%s) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,provenance=excluded.provenance,published=true,sort_order=excluded.sort_order,updated_at=now()",(r["lesson"]["id"],Jsonb(r["lesson"]),Jsonb(r["sources"]),i))
+                    cursor.execute("INSERT INTO public.study_lessons(id,payload,provenance,published,sort_order) VALUES(%s,%s,%s,true,%s) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload,provenance=excluded.provenance,published=true,sort_order=excluded.sort_order,updated_at=now()",(r["lesson"]["id"],Jsonb({**r["lesson"],**({"goattrick":r["goattrick"]} if r.get("goattrick") else {})}),Jsonb(r["sources"]+[{"trick_source":v} for v in r.get("goattrick_sources",[])]),i))
     except psycopg.Error:
         raise RuntimeError("Neon publication failed; transaction rolled back. Check DATABASE_URL and neon/schema.sql.") from None
     print(f"Published {len(records)} lessons to Neon. Refresh Study; no website rebuild required.")

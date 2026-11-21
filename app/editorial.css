@@ -66,3 +66,5 @@ body{font-size:18px;line-height:1.65;background:#fff}
 }
 @media(max-width:400px){.hero-art{height:220px}.editorial-copy h1{font-size:37px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+.goattrick{padding:24px 26px;margin:28px 0;border:1px solid #d9a52e66;background:#f0b43c1c;border-radius:17px}.goattrick .eyebrow{color:#b07a00}.goattrick h2{margin:12px 0 10px!important;font-size:24px!important}
