@@ -1,6 +1,8 @@
 import {authenticated,failure,moduleKey,selectedModules} from '@/lib/server';
 import {estimate,isCorrect,route,SCORING_VERSION} from '@/lib/scoringEngine';
 import type {Attempt,Question,ResponseValue} from '@/types/sat';
+
+const MINUTES=[32,32,10,35,35,0];
 export async function POST(request: Request) {
  try {
   const {db,user}=await authenticated(request), body=await request.json();
@@ -9,7 +11,7 @@ export async function POST(request: Request) {
    if(!test) throw new Error('This test is not available yet.');
    const {data:active}=await db.from('attempts').select('*').eq('test_id',test.id).eq('user_id',user.id).is('completed_at',null).maybeSingle();
    if(active) return Response.json({attempt:active});
-   const {data,error}=await db.from('attempts').insert({user_id:user.id,test_id:test.id,deadline:new Date(Date.now()+32*60000).toISOString()}).select().single();
+   const {data,error}=await db.from('attempts').insert({user_id:user.id,test_id:test.id,deadline:new Date(Date.now()+MINUTES[0]*60000).toISOString(),position:0}).select().single();
    if(error) throw error; return Response.json({attempt:data});
   }
   const {data,error}=await db.from('attempts').select('*').eq('id',body.id).eq('user_id',user.id).single();
@@ -23,8 +25,16 @@ export async function POST(request: Request) {
    return Response.json({attempt:a,questions:questions.map(q=>({...q,answer:undefined,explanation:undefined,scored:undefined})),review});
   }
   if(a.completed_at) return Response.json({attempt:a});
-  if(body.version!==a.version) return failure(new Error('This attempt changed in another tab. Reload to continue.'),409);
-  const expired=Date.now()>=new Date(a.deadline).getTime(), responses={...a.responses};
+  const paused=a.paused_remaining!==null&&a.paused_remaining!==undefined;
+  if(body.action==='resume'){
+   if(!paused) return Response.json({attempt:a});
+   const result=await db.from('attempts').update({deadline:new Date(Date.now()+a.paused_remaining!*1000).toISOString(),paused_remaining:null,version:a.version+1}).eq('id',a.id).eq('version',a.version).select().maybeSingle();
+   if(result.error) throw result.error;
+   return Response.json({attempt:result.data??a});
+  }
+  if(body.version!==a.version) return failure(new Error('This test changed in another tab. Reload to continue.'),409);
+  const left=Math.ceil((new Date(a.deadline).getTime()-Date.now())/1000);
+  const expired=!paused&&left<=0, responses={...a.responses};
   if(!expired&&a.stage!==2&&body.responses&&typeof body.responses==='object'){
    for(const q of questions){
     const v=body.responses[q.id] as ResponseValue|undefined; if(!v) continue;
@@ -34,23 +44,24 @@ export async function POST(request: Request) {
    }
   }
   const patch: Partial<Attempt>&{scoring_version?:string}={responses,version:a.version+1};
-  if(body.action==='advance'||expired){
+  if(Number.isInteger(body.position)&&body.position>=0&&body.position<=questions.length) patch.position=body.position;
+  if(body.action==='pause'&&!expired){
+   if(!paused&&a.stage!==2) patch.paused_remaining=Math.max(1,left);
+  }else if(body.action==='advance'||expired){
    if(a.stage===0) patch.route_rw=route(questions,responses);
    if(a.stage===3) patch.route_math=route(questions,responses);
-   patch.stage=a.stage+1;
-   patch.deadline=new Date(Date.now()+[32,32,10,35,35,0][patch.stage]*60000).toISOString();
+   patch.stage=a.stage+1; patch.position=0; patch.paused_remaining=null;
+   patch.deadline=new Date(Date.now()+MINUTES[patch.stage]*60000).toISOString();
    if(a.stage===4){
-    const selected=all.filter(q=>selectedModules(a).includes(q.module));
+    const selected=all.filter(q=>selectedModules({...a,...patch} as Attempt).includes(q.module));
     patch.rw_score=estimate(selected.filter(q=>q.module.startsWith('rw')),responses).score;
     patch.math_score=estimate(selected.filter(q=>q.module.startsWith('math')),responses).score;
     patch.completed_at=new Date().toISOString(); patch.scoring_version=SCORING_VERSION;
    }
-  }else if(body.action!=='save') throw new Error('Unknown action.');
+  }else if(body.action!=='save'&&body.action!=='pause') throw new Error('Unknown action.');
   const result=await db.from('attempts').update(patch).eq('id',a.id).eq('version',a.version).select().maybeSingle();
   if(result.error) throw result.error;
   if(!result.data) return failure(new Error('Another save completed first. Reload to continue.'),409);
   return Response.json({attempt:result.data,expired});
  }catch(e){return failure(e);}
 }
-
-
