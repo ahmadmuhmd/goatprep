@@ -1,5 +1,6 @@
 "use client";
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
+import {createPortal} from 'react-dom';
 import {X} from 'lucide-react';
 import type {Attempt, Question} from '@/types/sat';
 import MathText from '../MathText';
@@ -50,6 +51,7 @@ export default function Report({attempt, review, name, onExit, onStudy}: {attemp
    <div className="rp-actions">
     <button onClick={() => {setTab('all'); setOpen(0);}}>Review All Questions</button>
     <button onClick={() => {const weak = weakest(rows); if (weak) onStudy(slug(weak));}}>Study My Weakest Skill</button>
+    <button onClick={() => {const t = document.title; document.title = `GOATPrep_Practice_${testNo}_${new Date(attempt.completed_at!).toISOString().slice(0, 10)}`; window.print(); document.title = t;}}>Download PDF</button>
     <button onClick={onExit}>All Practice Tests</button>
    </div>
   </div></section>
@@ -104,6 +106,7 @@ export default function Report({attempt, review, name, onExit, onStudy}: {attemp
    <p className="rp-note">GOATPrep scores use an item-response model with College Board&apos;s published structure (adaptive modules, unscored pretest questions, 200–800 per section). They are realistic estimates, not official scores.</p>
   </div>
 
+  <PrintReport attempt={attempt} rows={rows} name={name} date={date} testNo={testNo}/>
   {current && <div className="rp-modal" onClick={e => e.target === e.currentTarget && setOpen(null)}><div role="dialog" aria-modal="true">
    <button className="x" aria-label="Close" onClick={() => setOpen(null)}><X size={20}/></button>
    <header><b>Practice Test {testNo} · {date}</b><span>Knowledge and Skills: {current.q.domain}</span></header>
@@ -139,4 +142,65 @@ function weakest(rows: {q: ReviewItem}[]) {
  let best: string | null = null, rate = 2;
  for (const [k, v] of by) {const x = v.c / v.n; if (v.n >= 2 && x < rate) {rate = x; best = k;}}
  return best;
+}
+
+/** One-page printable report laid out like the official College Board practice score report. */
+function PrintReport({attempt, rows, name, date, testNo}: {attempt: Attempt; rows: {q: ReviewItem; section: 'rw' | 'math'; answer: string}[]; name: string; date: string; testNo: string}) {
+ const sec = (s: 'rw' | 'math') => {const r = rows.filter(x => x.section === s); const c = r.filter(x => x.q.correct).length; return {total: r.length, correct: c};};
+ const rw = sec('rw'), m = sec('math'), all = {total: rw.total + m.total, correct: rw.correct + m.correct};
+ const total = (attempt.rw_score ?? 200) + (attempt.math_score ?? 200);
+ const route = {rw: attempt.route_rw, math: attempt.route_math};
+ const [host, setHost] = useState<HTMLElement | null>(null);
+ useEffect(() => setHost(document.body), []);
+ const Bars = ({band}: {band: number}) => <div className="pr-segs">{Array.from({length: 7}, (_, i) => <i key={i} className={i < band ? 'on' : ''}/>)}</div>;
+ if (!host) return null;
+ return createPortal(<div className="print-report" aria-hidden>
+  <header className="pr-top">
+   <div className="pr-brand"><img src="/brand/goatprep-mark.svg" width={34} height={34} alt=""/><span>GOAT<em>Prep</em></span></div>
+   <div className="pr-who"><b>Name: {name}</b><p>This practice score report is provided by GOATPrep (goatprep.me) for your personal use to help you prepare for test day. These scores are estimates, not official College Board scores.</p></div>
+  </header>
+  <h1 className="pr-title">Your Practice<br/>Score Report</h1>
+  <section className="pr-card">
+   <div className="pr-card-head"><b>GOATPrep Practice {testNo}</b><span>{date}</span></div>
+   <div className="pr-grid">
+    <div className="pr-col">
+     <h4>TOTAL SCORE</h4>
+     <div className="pr-total">{total}</div>
+     <small>Score Range: 400-1600</small>
+     <div className="pr-rangebox"><b>Score Range:</b><br/>This range reflects the minimum and maximum total score you can get with this assessment.</div>
+    </div>
+    <div className="pr-col">
+     <h4>SECTION SCORES</h4>
+     <div className="pr-sec"><span>Reading and Writing</span><div><strong>{attempt.rw_score}</strong><small>Score Range:<br/>200-800</small></div></div>
+     <div className="pr-sec"><span>Math</span><div><strong>{attempt.math_score}</strong><small>Score Range:<br/>200-800</small></div></div>
+    </div>
+    <div className="pr-col">
+     <h4>SCORE DETAILS</h4>
+     <span className="pr-lbl">Questions Overview</span>
+     <div className="pr-det"><strong>{all.correct}</strong><small>Correct<br/>Answers</small><small>Total Questions: {all.total}<br/>Total Incorrect: {all.total - all.correct}</small></div>
+     <div className="pr-two">
+      {([['Reading and Writing', rw], ['Math', m]] as const).map(([l, x]) => <div key={l}><span className="pr-lbl">{l}</span>
+       <div className="pr-det"><strong>{x.correct}</strong><small>Correct<br/>Answers</small></div>
+       <small>Total Questions: {x.total}<br/>Incorrect Answers: {x.total - x.correct}</small></div>)}
+     </div>
+    </div>
+   </div>
+   <div className="pr-ks">
+    <h4>KNOWLEDGE AND SKILLS</h4>
+    <p className="pr-sub">View your performance across the 8 content domains measured on the SAT</p>
+    <div className="pr-ks-grid">{(['rw', 'math'] as const).map(s => <div key={s}>
+     <b className="pr-ks-sec">{s === 'rw' ? 'Reading and Writing' : 'Math'}</b>
+     {DOMAINS[s].map(d => {const items = rows.filter(r => r.section === s && r.q.domain === d.name && r.q.scored); return <div className="pr-dom" key={d.name}>
+      <b>{d.name}</b><small>({d.share})</small>
+      <Bars band={domainBand(items.map(r => ({difficulty: r.q.difficulty, correct: r.q.correct})), route[s])}/>
+     </div>;})}
+    </div>)}</div>
+   </div>
+  </section>
+  <section className="pr-foot-box">
+   <img src="/brand/goatprep-mark.svg" width={40} height={40} alt=""/>
+   <p>Take more full-length adaptive practice tests, review every question, and practice the skills you need with free lessons, daily questions and GOATTricks.<br/><b>Continue at goatprep.me</b></p>
+  </section>
+  <footer className="pr-copy">© {new Date().getFullYear()} GOATPrep · goatprep.me · Not affiliated with College Board. SAT® is a trademark of College Board.</footer>
+ </div>, host);
 }
