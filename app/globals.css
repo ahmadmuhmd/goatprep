@@ -966,3 +966,20 @@ section.stats,section.features-tabs,section.reviews-dark,section.faq,section.cta
  .shot-caption{margin-top:16px}
  .shot-caption b{font-size:17px}
 }
+
+/* ===== hero preview: one front card, the rest stacked behind as coloured edges ===== */
+.shot-stack{position:relative;margin-bottom:44px}
+.shot-win{position:relative;z-index:3}
+.shot-back{position:absolute;inset:0;border:2px solid;border-radius:20px;transform-origin:50% 100%;transition:border-color .6s,background .6s;pointer-events:none}
+.shot-back.b1{transform:translateY(12px) scale(.94);z-index:2}
+.shot-back.b2{transform:translateY(24px) scale(.88);z-index:1}
+.shot-back.b3{transform:translateY(36px) scale(.82);z-index:0}
+/* every slide sits in the same grid cell, so the window is always as tall as the tallest one */
+.shot-stage{display:grid;animation:none}
+.shot-slide{grid-area:1/1;opacity:0;visibility:hidden;transition:opacity .45s var(--ease),visibility 0s .45s}
+.shot-slide.on{opacity:1;visibility:visible;transition:opacity .45s var(--ease)}
+.shot-caption{margin-top:6px}
+
+/* ===== phone: the tab pill shrinks away into the bottom edge on scroll down (Jerry's orb stays) ===== */
+.glass-pill{transform-origin:50% 100%;transition:transform .45s cubic-bezier(.4,0,.2,1),opacity .3s,visibility 0s}
+.tabbar.tabs-hidden .glass-pill{transform:translateY(calc(100% + 40px + env(safe-area-inset-bottom))) scale(.35);opacity:0;pointer-events:none;visibility:hidden;transition:transform .45s cubic-bezier(.4,0,.2,1),opacity .3s .1s,visibility 0s .45s}

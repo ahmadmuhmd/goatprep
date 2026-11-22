@@ -44,6 +44,19 @@ export default function Page() {
  const [completed, setCompletedState] = useState<string[]>([]), [daily, setDaily] = useState<DailyStats | null>(null), [admin, setAdmin] = useState(false);
  const [notice, setNotice] = useState(''), [scrolled, setScrolled] = useState(false);
  const navRef = useRef<HTMLElement>(null), [pill, setPill] = useState<React.CSSProperties>({opacity: 0});
+ const [tabsHidden, setTabsHidden] = useState(false);
+ useEffect(() => {
+  let last = window.scrollY, hidden = false;
+  const onScroll = () => {
+   const y = window.scrollY, d = y - last;
+   if (Math.abs(d) < 8) return;
+   last = y;
+   const next = d > 0 && y > 120;
+   if (next !== hidden) {hidden = next; setTabsHidden(next);}
+  };
+  window.addEventListener('scroll', onScroll, {passive: true});
+  return () => window.removeEventListener('scroll', onScroll);
+ }, []);
  useEffect(() => {
   const place = () => {const a = navRef.current?.querySelector('a[aria-current=page]') as HTMLElement | null; setPill(a ? {opacity: 1, width: a.offsetWidth, transform: `translateX(${a.offsetLeft}px)`} : {opacity: 0});};
   place(); window.addEventListener('resize', place); return () => window.removeEventListener('resize', place);
@@ -144,7 +157,7 @@ export default function Page() {
   <footer className="footer"><div className="footer-in"><span>© GOATPrep · Free Digital SAT practice</span><span>Not affiliated with College Board. SAT® is a trademark of College Board.</span></div></footer>
 
   {tab !== 'jerry' && <button className="jerry-fab hide-m" onClick={() => setJerryOpen(true)} aria-label="Ask Jerry" title="Ask Jerry"><Mark size={44}/></button>}
-  <nav className="tabbar" aria-label="Tabs">
+  <nav className={'tabbar' + (tabsHidden ? ' tabs-hidden' : '')} aria-label="Tabs">
    <div className="glass-pill">
     <span className="glass-thumb" style={{transform: `translateX(${Math.max(0, TABS.findIndex(t => t.id === tab)) * 100}%)`, opacity: TABS.some(t => t.id === tab) ? 1 : 0}}/>
     {TABS.map(t => <a key={t.id} href={'#' + t.id} aria-current={tab === t.id ? 'page' : undefined}><t.icon size={21} strokeWidth={tab === t.id ? 2.4 : 2}/><span>{t.label}</span></a>)}
