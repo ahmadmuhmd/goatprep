@@ -9,7 +9,8 @@ const server=moduleURL(`export async function authenticated(){return globalThis.
 export function moduleKey(a){return ['rw1','rw2'+a.route_rw,null,'math1','math2'+a.route_math][a.stage]??null;}
 export function selectedModules(a){return ['rw1','rw2'+a.route_rw,'math1','math2'+a.route_math];}
 export function failure(e,status=400){return Response.json({error:e.message},{status});}`);
-let source=transpile('../app/api/attempt/route.ts').replace(/['"]@\/lib\/server['"]/g,JSON.stringify(server)).replace(/['"]@\/lib\/scoringEngine['"]/g,JSON.stringify(scoring));
+const rescore=moduleURL(transpile('../lib/rescore.ts').replace(/['"]@\/lib\/server['"]/g,JSON.stringify(server)).replace(/['"]@\/lib\/scoringEngine['"]/g,JSON.stringify(scoring)));
+let source=transpile('../app/api/attempt/route.ts').replace(/['"]@\/lib\/rescore['"]/g,JSON.stringify(rescore)).replace(/['"]@\/lib\/server['"]/g,JSON.stringify(server)).replace(/['"]@\/lib\/scoringEngine['"]/g,JSON.stringify(scoring));
 const {POST}=await import(moduleURL(source));
 function context({stage=0,expired=false,owner='u',complete=false}={}){
  const attempt={id:'a',test_id:'test-1',user_id:owner,stage,route_rw:'easy',route_math:'easy',deadline:new Date(Date.now()+(expired?-60000:60000)).toISOString(),responses:{},version:0,completed_at:complete?new Date().toISOString():null};
@@ -32,3 +33,10 @@ test('Stale versions cannot overwrite newer answers',async()=>{const {attempt}=c
 test('An expired module rejects late answer changes and advances',async()=>{const {attempt}=context({expired:true});const response=await POST(request({action:'save',id:'a',version:0,responses:{'rw1-0':{answer:'A',flagged:false,eliminated:[],note:''}}}));assert.equal(response.status,200);assert.equal(attempt.stage,1);assert.equal(attempt.responses['rw1-0'],undefined);});
 test('Math route ignores correct Reading & Writing responses',async()=>{const {attempt,bank}=context({stage:3});for(const q of bank.filter(q=>q.module.startsWith('rw')))attempt.responses[q.id]={answer:'A',flagged:false,eliminated:[],note:''};const response=await POST(request({action:'advance',id:'a',version:0}));assert.equal(response.status,200);assert.equal(attempt.route_math,'easy');});
 test('Completion saves estimated scores and only then exposes selected-path review',async()=>{const {attempt}=context({stage:4});const response=await POST(request({action:'advance',id:'a',version:0}));assert.equal(response.status,200);assert.equal(attempt.stage,5);assert(attempt.completed_at);assert(attempt.rw_score>=200&&attempt.math_score>=200);const x=await(await POST(request({action:'load',id:'a'}))).json();assert.equal(x.review.length,98);assert(x.review.every(q=>q.answer[0]==='A'));assert(x.review.every(q=>!q.correct));});
+test('Old finished attempts are re-scored on load, and a few right answers lift a section off 200',async()=>{
+ const {attempt}=context({complete:true});
+ Object.assign(attempt,{stage:5,rw_score:200,math_score:200,scoring_version:'old',responses:Object.fromEntries(['rw1-0','rw1-1','rw1-2','rw1-3','rw1-4','math1-0'].map(id=>[id,{answer:'A'}]))});
+ const x=await (await POST(request({action:'load',id:'a'}))).json();
+ assert(x.attempt.rw_score>200&&x.attempt.math_score>200,`got ${x.attempt.rw_score}/${x.attempt.math_score}`);
+ assert.notEqual(x.attempt.scoring_version,'old');
+});

@@ -1,6 +1,7 @@
 import {authenticated,failure,moduleKey,selectedModules} from '@/lib/server';
 import {estimate,isCorrect,route,SCORING_VERSION} from '@/lib/scoringEngine';
 import type {Attempt,Question,ResponseValue} from '@/types/sat';
+import {rescoreOutdated} from '@/lib/rescore';
 
 const MINUTES=[32,32,10,35,35,0];
 export async function POST(request: Request) {
@@ -16,9 +17,10 @@ export async function POST(request: Request) {
   }
   const {data,error}=await db.from('attempts').select('*').eq('id',body.id).eq('user_id',user.id).single();
   if(error||!data) return failure(new Error('Attempt not found.'),404);
-  const a=data as Attempt;
+  let a=data as Attempt;
   const {data:bank,error:bankError}=await db.from('goat_questions').select('*').eq('test_id',a.test_id);
   if(bankError||!bank) throw new Error('Unable to load this test.');
+  if(body.action==='load'&&a.completed_at) [a]=await rescoreOutdated(db,[a],{[a.test_id]:bank as Question[]});
   const all=bank as Question[], questions=all.filter(q=>q.module===moduleKey(a)).sort((x,y)=>x.position-y.position);
   if(body.action==='load'){
    const review=a.completed_at ? all.filter(q=>selectedModules(a).includes(q.module)).map(q=>({...q,correct:isCorrect(q,a.responses[q.id]?.answer)})) : undefined;

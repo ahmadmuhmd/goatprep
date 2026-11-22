@@ -52,7 +52,7 @@ export default function Report({attempt, review, name, onExit, onStudy}: {attemp
    <div className="rp-actions">
     <button onClick={() => {setTab('all'); setOpen(0);}}>Review All Questions</button>
     <button onClick={() => {const weak = weakest(rows); if (weak) onStudy(slug(weak));}}>Study My Weakest Skill</button>
-    <button disabled={saving} onClick={async () => {setSaving(true); try {await downloadReportPdf(`GOATPrep_test${testNo}_${(name.trim().split(/\s+/)[0] || 'student').toLowerCase().replace(/[^a-z0-9]/g, '')}`);} finally {setSaving(false);}}}>{saving ? 'Preparing PDF…' : 'Download PDF'}</button>
+    <button disabled={saving} onClick={async () => {setSaving(true); try {await downloadReportPdf(`GOATPrep_test${testNo}_${fileFirstName(name)}`);} finally {setSaving(false);}}}>{saving ? 'Preparing PDF…' : 'Download PDF'}</button>
     <button onClick={onExit}>All Practice Tests</button>
    </div>
   </div></section>
@@ -223,4 +223,10 @@ async function downloadReportPdf(fileName: string) {
   pdf.addImage(png, 'PNG', (pw - w) / 2, m, w, h);
   pdf.save(fileName + '.pdf');
  } finally {el.classList.remove('pr-capture');}
+}
+
+/** Tester's first name for the file name, first letter capital: "ahmad muhammad" → "Ahmad". */
+function fileFirstName(name: string) {
+ const first = (name.trim().split(/\s+/)[0] || '').replace(/[^\p{L}\p{N}]/gu, '').toLowerCase();
+ return first ? first[0].toUpperCase() + first.slice(1) : 'Student';
 }

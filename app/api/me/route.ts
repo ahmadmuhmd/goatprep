@@ -1,5 +1,7 @@
 import {authenticated,failure,isAdmin} from '@/lib/server';
 import {dailyStats} from '@/lib/daily';
+import {rescoreOutdated} from '@/lib/rescore';
+import type {Attempt} from '@/types/sat';
 
 const PROFILE='display_name,grade,test_date,target_score,start_score,focus,onboarded_at';
 export async function GET(request: Request) {
@@ -12,8 +14,9 @@ export async function GET(request: Request) {
    db.from('daily_answers').select('day,section,correct').eq('user_id',user.id).order('day',{ascending:false}).limit(800),
   ]);
   if(attempts.error) throw attempts.error;
+  const list=await rescoreOutdated(db,attempts.data as Attempt[]);
   return Response.json({
-   attempts:attempts.data,admin:isAdmin(user.email),
+   attempts:list,admin:isAdmin(user.email),
    profile:profile.error?null:profile.data,
    completed:progress.error?[]:(progress.data as {lesson_id:string}[]).map(x=>x.lesson_id),
    daily:answers.error?null:dailyStats(answers.data as {day:string;correct:boolean}[]),

@@ -11,7 +11,7 @@ import type {Question, ResponseValue} from '@/types/sat';
  * Curves are calibrated to official Bluebook practice reports (e.g. 2/98 correct → 200/200;
  * 44/54 R&W → 710 and 38/44 Math → 730 on the harder route) and typical published conversions.
  */
-export const SCORING_VERSION = 'goat-mst-irt-2';
+export const SCORING_VERSION = 'goat-mst-irt-3';
 
 export function numericValue(value: string): number | null {
  const v = value.trim().replace(/−/g, '-');
@@ -94,10 +94,14 @@ function convert(curve: Curve, f: number) {
 
 /** Section score for the administered modules (Module 1 + the routed Module 2). */
 export function estimate(questions: Question[], responses: Record<string, Partial<ResponseValue> | undefined>) {
- const {theta, fraction} = rawEquivalent(questions, responses);
+ const {theta, fraction, correct} = rawEquivalent(questions, responses);
  const section = questions.some(q => String(q.module ?? '').startsWith('math')) ? 'math' : 'rw';
  const route = questions.some(q => String(q.module ?? '').endsWith('hard')) ? 'hard' : 'easy';
- const score = Math.max(200, Math.min(800, Math.round(convert(CURVES[section][route], fraction) / 10) * 10));
+ // The 3PL guessing floor makes a handful of right answers look like chance, which would leave them at 200.
+ // On the real scale a few correct answers still lift a section off the floor, so every correct answer
+ // at the very bottom is worth at least ~8 points (5 right → 240, 10 right → 280).
+ const floor = correct > 0 ? Math.min(300, 200 + 10 * Math.ceil(correct * 0.8)) : 200;
+ const score = Math.max(200, floor, Math.min(800, Math.round(convert(CURVES[section][route], fraction) / 10) * 10));
  return {theta, fraction, score, route};
 }
 
