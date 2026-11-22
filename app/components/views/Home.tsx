@@ -4,60 +4,10 @@ import type {AppCtx} from '../site/context';
 import {daysUntil, firstName, totalScore} from '../site/context';
 import {WORDS, wordOfTheDay} from '@/lib/vocab';
 import {FeaturedReviews} from './Community';
-import ProductShot from './ProductShot';
-import Pendants from '../brand/Pendants';
-import {useEffect, useState} from 'react';
+import Landing from './Landing';
 
 export default function Home({ctx}: {ctx: AppCtx}) {
  return ctx.user ? <Dashboard ctx={ctx}/> : <Landing ctx={ctx}/>;
-}
-
-function CountUp({to}: {to: number}) {
- const [n, setN] = useState(0);
- useEffect(() => {
-  let raf = 0; const t0 = performance.now(), dur = 1600;
-  const step = (t: number) => {const p = Math.min(1, (t - t0) / dur); setN(Math.round(to * (1 - Math.pow(1 - p, 3)))); if (p < 1) raf = requestAnimationFrame(step);};
-  raf = requestAnimationFrame(step); return () => cancelAnimationFrame(raf);
- }, [to]);
- return <>{n.toLocaleString()}</>;
-}
-
-function Landing({ctx}: {ctx: AppCtx}) {
- const word = wordOfTheDay();
- return <>
-  <section className="hero hero-full">
-   <Pendants/>
-   <div className="rise hero-copy">
-    <h1>The Digital SAT, <em>practiced for real.</em></h1>
-    <div className="hero-cta">
-     <button className="btn btn-primary btn-lg" onClick={() => ctx.navigate('practice')}><Play size={18}/> Take a free test</button>
-     <button className="btn btn-ghost btn-lg" onClick={ctx.login}>Sign in with Google</button>
-    </div>
-    {ctx.userCount !== null && ctx.userCount > 0 && <div className="users-count">
-     <span className="big-num"><CountUp to={ctx.userCount}/></span>
-     <span>students already<br/>practicing on GOATPrep</span>
-    </div>}
-   </div>
-   <div className="hero-art rise" style={{'--i': 2} as React.CSSProperties}><ProductShot/></div>
-  </section>
-
-  <FeaturedReviews reviews={ctx.reviews}/>
-
-  <section className="section">
-   <div className="links4">
-    {[
-     {icon: <Target size={22}/>, t: 'Practice tests', d: 'Full adaptive tests, scored like test day', go: () => ctx.navigate('practice')},
-     {icon: <CalendarCheck size={22}/>, t: 'Daily questions', d: 'One Reading & Writing and one Math, every day', go: () => ctx.navigate('daily')},
-     {icon: <BookOpen size={22}/>, t: 'Lessons', d: 'Every SAT skill, with a GOATTrick shortcut', go: () => ctx.navigate('study')},
-     {icon: <Languages size={22}/>, t: 'SAT words', d: `Today: ${word.word}, ${word.def}`, go: () => ctx.navigate('words', word.word)},
-    ].map((x, i) => <button key={x.t} className="link-card rise" style={{'--i': i} as React.CSSProperties} onClick={x.go}>
-     <span className="ico">{x.icon}</span>
-     <span className="lc-text"><b>{x.t}</b><span>{x.d}</span></span>
-     <ArrowRight size={20}/>
-    </button>)}
-   </div>
-  </section>
- </>;
 }
 
 function Dashboard({ctx}: {ctx: AppCtx}) {

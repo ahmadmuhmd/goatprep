@@ -8,6 +8,7 @@ import {lessons as foundationLessons} from '@/lib/lessons';
 import type {StudyLesson} from '@/lib/study-schema';
 import type {Attempt, DailyStats, Profile, Review, TestInfo} from '@/types/sat';
 import {Brand, Mark} from './components/brand/Logo';
+import {SideCharms} from './components/brand/Charm';
 import JerryHead from './components/JerryHead';
 import type {AppCtx, Tab} from './components/site/context';
 import {firstName} from './components/site/context';
@@ -117,6 +118,7 @@ export default function Page() {
  const showOnboarding = !!user && profileLoaded && !profile?.onboarded_at;
  const current = tab === 'study' && routeId ? {page: 'lesson', lessonId: routeId} : {page: tab};
  return <div className="shell">
+  <SideCharms/>
   <header className={'topbar ' + (scrolled ? 'scrolled' : '')}>
    <div className="topbar-in">
     <Brand/>

@@ -29,7 +29,7 @@ export default function ProductShot() {
 function Opts({sel, out, list}: {sel: number; out?: number; list: string[]}) {
  return <>{list.map((o, n) => <div key={o} className={'shot-opt' + (n === sel ? ' sel' : '') + (n === out ? ' out' : '')}><span>{'ABCD'[n]}</span>{o}</div>)}</>;
 }
-function RW() {
+export function RW() {
  return <div className="shot-body">
   <p className="shot-pass">Although critics believed that customers would never agree to pay to pick their own produce on farms, such concerns didn&rsquo;t ______ Booker T. Whatley&rsquo;s efforts to promote the practice.</p>
   <div className="shot-q"><div className="shot-qh"><i>4</i> Mark for Review<em className="abc">ABC</em></div>
@@ -37,7 +37,7 @@ function RW() {
    <Opts sel={1} out={2} list={['enhance', 'hinder', 'misrepresent', 'aggravate']}/></div>
  </div>;
 }
-function MathSlide() {
+export function MathSlide() {
  return <div className="shot-body shot-math">
   <div className="shot-calc">
    <div className="sc-head"><b>Graphing</b><span>Scientific</span></div>
@@ -49,7 +49,7 @@ function MathSlide() {
    <Opts sel={2} list={['(1, 5)', '(3, 6)', '(2, 7)', '(7, 2)']}/></div>
  </div>;
 }
-function Notes() {
+export function Notes() {
  return <div className="shot-body">
   <p className="shot-pass">The octopus can change both the color and the <mark>texture of its skin in under a second</mark>, a feat researchers attribute to specialized cells called chromatophores.</p>
   <div className="shot-q">
@@ -58,7 +58,7 @@ function Notes() {
    <Opts sel={0} list={['Octopuses rapidly alter their skin.', 'Chromatophores are rare.', 'Researchers disagree.', 'Color matters most.']}/></div>
  </div>;
 }
-function Score() {
+export function Score() {
  return <div className="shot-score-slide">
   <div className="ss-card"><small>TOTAL SCORE</small><b>1440</b><div><span>R&amp;W <strong>710</strong></span><span>Math <strong>730</strong></span></div></div>
   <div className="ss-ks">{['Information and Ideas', 'Craft and Structure', 'Algebra', 'Advanced Math'].map((d, n) => <div key={d}><span>{d}</span><div className="ss-seg">{Array.from({length: 7}, (_, k) => <i key={k} className={k < [6, 5, 7, 5][n] ? 'on' : ''}/>)}</div></div>)}</div>
