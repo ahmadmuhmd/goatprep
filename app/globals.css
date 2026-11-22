@@ -938,3 +938,7 @@ section.stats,section.features-tabs,section.reviews-dark,section.faq,section.cta
 .dash-hero .banner-stats>div:nth-child(4) .big-num{color:#E8743B}
 [data-theme=dark] .split div{background:#1F2A44;color:#AFC4FF}
 [data-theme=dark] .split div+div{background:#3A2518;color:#FFC29E}
+
+/* Android APK download button: mobile only */
+.hero-cta .apk-btn{display:none}
+@media (max-width:860px){.hero-cta .apk-btn{display:inline-flex}}

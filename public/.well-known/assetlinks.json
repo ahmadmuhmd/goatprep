@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "me.goatprep.twa",
+    "sha256_cert_fingerprints": ["15:95:72:9C:3B:74:00:44:A3:95:80:88:96:95:03:D6:CE:B5:93:14:DE:11:AD:9A:6B:5A:FD:AB:FC:9F:40:3A"]
+  }
+}]

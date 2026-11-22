@@ -1,6 +1,6 @@
 "use client";
 import {useEffect, useRef, useState} from 'react';
-import {ArrowRight, BadgeCheck, Minus, Play, Plus, Star} from 'lucide-react';
+import {ArrowRight, BadgeCheck, Download, Minus, Play, Plus, Star} from 'lucide-react';
 import type {AppCtx} from '../site/context';
 import {WORDS, wordOfTheDay} from '@/lib/vocab';
 import ProductShot, {MathSlide, Notes, RW, Score} from './ProductShot';
@@ -37,6 +37,7 @@ export default function Landing({ctx}: {ctx: AppCtx}) {
     <div className="hero-cta">
      <button className="btn btn-primary btn-lg" onClick={() => ctx.navigate('practice')}><Play size={18}/> Take a free test</button>
      <button className="btn btn-ghost btn-lg" onClick={ctx.login}>Sign in with Google</button>
+     <a className="btn btn-ghost btn-lg apk-btn" href="https://github.com/ahmadmuhmd/goatprep/releases/latest/download/goatprep.apk" download><Download size={18}/> Download the app</a>
     </div>
    </div>
    <div className="hero-art rise" style={{'--i': 2} as React.CSSProperties}><ProductShot/></div>
