@@ -692,3 +692,16 @@ body{background:radial-gradient(1200px 600px at 85% -10%,color-mix(in srgb,var(-
  .pd-goat{right:2%;top:6px}
 }
 @media (max-width:860px){.hero-cta .btn{flex:none!important;height:54px}}
+/* 3D pendants: only in the empty gutters of the hero */
+.pd{position:absolute;height:auto;filter:drop-shadow(0 14px 14px rgba(0,0,0,.28));animation:bob 7s ease-in-out infinite;opacity:.97}
+.pd-goat{left:43%;top:5%;width:74px}
+.pd-pencil{left:44%;bottom:12%;width:14px;transform-origin:center;animation-name:bobtilt;animation-delay:-3s}
+.pd-calc{right:1%;top:0;width:50px;animation-delay:-1.5s}
+.pd-timer{left:1%;bottom:2%;width:60px;animation-delay:-4.5s}
+@keyframes bobtilt{0%,100%{transform:translateY(0) rotate(28deg)}50%{transform:translateY(-10px) rotate(36deg)}}
+[data-theme=dark] .hero-full::before{content:'';position:absolute;inset:-10% -20% auto auto;width:60%;height:80%;background:radial-gradient(closest-side,rgba(47,163,110,.16),transparent);pointer-events:none}
+@media (max-width:1060px){.pd-goat{left:auto;right:2%;top:-2%}.pd-pencil{display:none}}
+@media (max-width:860px){.pd-calc,.pd-timer,.pd-pencil{display:none}.pd-goat{width:56px;right:3%;top:4px;left:auto}}
+.pd-calc{left:auto;bottom:auto;right:1%;top:0}
+[data-theme=dark] .jerry-fab{border:1px solid var(--line-2)}
+@media (max-width:860px){.hero-full{padding-top:70px}.pd-goat{top:2px;right:6%;width:54px}}
