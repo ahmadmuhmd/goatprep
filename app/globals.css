@@ -835,3 +835,8 @@ section.stats,section.features-tabs,section.reviews-dark,section.faq,section.cta
  .cta-dark .hero-cta{flex-direction:column}
  .rv-charm{display:none}
 }
+/* dashboard: all four action cards green */
+.dash .action,.dash .action.a-dark{background:#127A4E;color:#fff;border:1px solid #127A4E}
+.dash .action .ico{background:rgba(255,255,255,.14);color:#fff}
+.dash .action .label,.dash .action .sub{color:rgba(255,255,255,.75)}
+.dash .action .go{color:#fff}
