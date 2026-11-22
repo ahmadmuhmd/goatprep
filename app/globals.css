@@ -939,6 +939,62 @@ section.stats,section.features-tabs,section.reviews-dark,section.faq,section.cta
 [data-theme=dark] .split div{background:#1F2A44;color:#AFC4FF}
 [data-theme=dark] .split div+div{background:#3A2518;color:#FFC29E}
 
-/* Android APK download button: mobile only */
-.hero-cta .apk-btn{display:none}
-@media (max-width:860px){.hero-cta .apk-btn{display:inline-flex}}
+/* ===== v9: phone landing redesign (cards, bento grid, swipe reviews) ===== */
+.m-sub,.m-art,.features-bento,.rv-swipe{display:none}
+@media (max-width:860px){
+ /* hero: swap the simulator screenshot for a floating card cluster */
+ .hero-art{display:none}
+ .m-sub{display:block;margin:16px auto 0;max-width:30ch;font-size:17px;line-height:1.5;color:var(--muted)}
+ .hero-full{padding:64px 0 10px;overflow:visible}
+ .hero-cta{margin-top:24px}
+ .m-art{display:block;position:relative;height:330px;max-width:360px;margin:30px auto 0;text-align:left}
+ .m-art::before{content:'';position:absolute;inset:0 -10%;background:radial-gradient(closest-side,rgba(18,122,78,.28),transparent 75%);filter:blur(16px);z-index:-1}
+ .m-card{position:absolute;border-radius:24px;box-shadow:0 26px 44px -22px rgba(10,40,25,.5);animation:bob 7s ease-in-out infinite}
+ .m-score{left:0;top:0;width:58%;padding:18px 18px 20px;background:var(--green);color:#fff;transform:rotate(-4deg)}
+ .m-k{display:block;font-size:12px;font-weight:700;opacity:.85}
+ .m-big{display:block;font-family:var(--font-head);font-weight:400;font-size:62px;line-height:1.05;letter-spacing:-.03em;margin:6px 0 10px}
+ .m-bars{display:grid;gap:8px}
+ .m-bars span{position:relative;display:block;font-size:11px;font-weight:600;padding-top:2px}
+ .m-bars i{display:block;height:7px;border-radius:7px;background:rgba(255,255,255,.28);margin-bottom:4px;position:relative;overflow:hidden}
+ .m-bars i::after{content:'';position:absolute;inset:0;width:var(--w);border-radius:7px;background:#FFD86B}
+ .m-q{right:0;top:44px;width:62%;padding:16px;background:var(--card);color:var(--ink);transform:rotate(3.5deg);animation-delay:-2s}
+ .m-q p{font-family:var(--font-exam-serif),serif;font-size:15px;line-height:1.35;margin:10px 0}
+ .m-opts{display:grid;gap:6px}
+ .m-opts span{border:1.5px solid var(--line-2);border-radius:12px;padding:7px 11px;font-size:13px;font-weight:600}
+ .m-opts .sel{border-color:var(--green);background:var(--green-50);color:var(--green-ink)}
+ .m-chat{left:6%;bottom:6px;width:70%;display:flex;gap:10px;align-items:center;padding:12px 14px;background:#151816;color:#FAF7F0;font-size:14px;line-height:1.4;transform:rotate(-1.5deg);animation-delay:-4s}
+ .m-calc{position:absolute;right:2%;bottom:2px;width:54px;animation:bob 7s ease-in-out infinite;animation-delay:-1s}
+ .m-goat{position:absolute;left:-2%;top:-26px;width:58px;animation:bob 6s ease-in-out infinite}
+ .pd-goat{display:none}
+
+ /* features: bento grid replaces the single tab card */
+ section.features-tabs{display:none}
+ section.features-bento{display:block;margin-top:70px;position:relative}
+ .features-bento .ft-head{margin-bottom:20px}
+ .bento{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:minmax(118px,auto);gap:12px}
+ .bt{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;padding:16px 16px 18px;border-radius:26px;color:#1b1b1b;overflow:hidden;transition:transform .2s var(--ease)}
+ .bt:active{transform:scale(.97)}
+ .bt-ico{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.7);display:grid;place-items:center;margin-bottom:auto}
+ .bt-label{font-size:12px;font-weight:700;opacity:.65;margin-top:12px}
+ .bt-title{font-family:var(--font-head);font-weight:500;font-size:21px;line-height:1.12;letter-spacing:-.02em}
+ .bt-text{font-size:13px;line-height:1.4;color:#333;margin-top:2px}
+ .bt-go{position:absolute;right:14px;top:16px;opacity:.55}
+ .bt-tests{grid-column:1 / -1;min-height:150px}
+ .bt-tests .bt-title{font-size:26px;max-width:14ch}
+ .bt-desmos{grid-row:span 2}
+ .bt-desmos .bt-title{font-size:25px}
+ .bt-jerry{grid-column:1 / -1;flex-direction:row;flex-wrap:wrap}
+ .bt-jerry .bt-ico{margin-bottom:0}
+
+ /* reviews: swipe sideways */
+ .rv-list,.rv-dots{display:none}
+ .rv-swipe{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -24px;padding:4px 24px 8px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+ .rv-swipe::-webkit-scrollbar{display:none}
+ .rv-card{flex:0 0 82%;scroll-snap-align:center;margin:0;padding:20px;border-radius:24px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);display:flex;flex-direction:column;gap:10px}
+ .rv-card:nth-child(3n+2){background:rgba(123,224,174,.14)}
+ .rv-card .stars{color:#FFD86B}
+ .rv-card blockquote{margin:0;font-family:var(--font-head);font-weight:400;font-size:19px;line-height:1.35;flex:1}
+ .rv-card figcaption{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600}
+ .rv-card figcaption>span:last-child{display:flex;flex-direction:column;gap:2px}
+ .rv-card .review-avatar{width:36px;height:36px;font-size:15px;flex:none}
+}
