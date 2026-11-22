@@ -10,6 +10,7 @@ export type AppCtx = {
  attempts: Attempt[];
  tests: TestInfo[];
  reviews: Review[];
+ userCount: number | null;
  lessons: StudyLesson[];
  completed: string[];
  daily: DailyStats | null;

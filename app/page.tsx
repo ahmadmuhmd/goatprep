@@ -1,5 +1,5 @@
 "use client";
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {User} from '@supabase/supabase-js';
 import {BookOpen, CalendarCheck, Home as HomeIcon, Target, UserRound, X} from 'lucide-react';
 import {supabase} from '@/lib/supabase';
@@ -7,7 +7,7 @@ import {api} from '@/lib/client';
 import {lessons as foundationLessons} from '@/lib/lessons';
 import type {StudyLesson} from '@/lib/study-schema';
 import type {Attempt, DailyStats, Profile, Review, TestInfo} from '@/types/sat';
-import {Brand} from './components/brand/Logo';
+import {Brand, Mark} from './components/brand/Logo';
 import JerryHead from './components/JerryHead';
 import type {AppCtx, Tab} from './components/site/context';
 import {firstName} from './components/site/context';
@@ -25,7 +25,7 @@ import Exam from './components/exam/Exam';
 
 const NAV: {id: Tab; label: string}[] = [
  {id: 'home', label: 'Home'}, {id: 'study', label: 'Study'}, {id: 'words', label: 'Words'},
- {id: 'practice', label: 'Practice'}, {id: 'daily', label: 'Daily'},
+ {id: 'practice', label: 'Tests'}, {id: 'daily', label: 'Daily'},
 ];
 const TABS: {id: Tab; label: string; icon: typeof HomeIcon}[] = [
  {id: 'home', label: 'Home', icon: HomeIcon}, {id: 'study', label: 'Study', icon: BookOpen},
@@ -38,18 +38,24 @@ export default function Page() {
  const [examId, setExamId] = useState<string | null>(null), [startTest, setStartTest] = useState<TestInfo | null>(null);
  const [user, setUser] = useState<User | null>(null), [profile, setProfile] = useState<Profile | null>(null), [profileLoaded, setProfileLoaded] = useState(false);
  const [lessons, setLessons] = useState<StudyLesson[]>([...foundationLessons]);
+ const [userCount, setUserCount] = useState<number | null>(null);
  const [tests, setTests] = useState<TestInfo[]>([]), [attempts, setAttempts] = useState<Attempt[]>([]), [reviews, setReviews] = useState<Review[]>([]);
  const [completed, setCompletedState] = useState<string[]>([]), [daily, setDaily] = useState<DailyStats | null>(null), [admin, setAdmin] = useState(false);
  const [notice, setNotice] = useState(''), [scrolled, setScrolled] = useState(false);
+ const navRef = useRef<HTMLElement>(null), [pill, setPill] = useState<React.CSSProperties>({opacity: 0});
+ useEffect(() => {
+  const place = () => {const a = navRef.current?.querySelector('a[aria-current=page]') as HTMLElement | null; setPill(a ? {opacity: 1, width: a.offsetWidth, transform: `translateX(${a.offsetLeft}px)`} : {opacity: 0});};
+  place(); window.addEventListener('resize', place); return () => window.removeEventListener('resize', place);
+ }, [tab]);
  const [chats, setChats] = useJerryChat(), [jerryOpen, setJerryOpen] = useState(false), [pending, setPending] = useState<string | undefined>();
 
  const navigate = useCallback((next: Tab, id?: string) => {window.location.hash = next + (id ? '/' + encodeURIComponent(id) : '');}, []);
  const refresh = useCallback(async () => {
   const [community, library] = await Promise.all([
-   api<{reviews: Review[]}>('community').catch(() => ({reviews: []})),
+   api<{reviews: Review[]; count: number | null}>('community').catch(() => ({reviews: [], count: null})),
    api<{tests: TestInfo[]}>('tests').catch(() => ({tests: []})),
   ]);
-  setReviews(community.reviews); setTests(library.tests);
+  setReviews(community.reviews); setUserCount(community.count ?? null); setTests(library.tests);
  }, []);
  const refreshUser = useCallback(async () => {
   try {
@@ -87,19 +93,19 @@ export default function Page() {
 
  const login = useCallback(async () => {
   if (!supabase) {setNotice('Sign-in is not configured yet.'); return;}
-  const {error} = await supabase.auth.signInWithOAuth({provider: 'google', options: {redirectTo: location.origin + '/' + location.hash}});
+  const {error} = await supabase.auth.signInWithOAuth({provider: 'google', options: {redirectTo: location.origin + '/'}});
   if (error) setNotice(error.message);
  }, []);
 
  const ctx: AppCtx = useMemo(() => ({
-  user, profile, attempts, tests, reviews, lessons, completed, daily, admin, navigate,
+  user, profile, attempts, tests, reviews, userCount, lessons, completed, daily, admin, navigate,
   login: () => void login(), logout: () => {void supabase?.auth.signOut(); navigate('home');},
   notify: setNotice, refreshUser,
   setCompleted: u => setCompletedState(u), setProfile: p => setProfile(p),
   beginTest: t => {if (!user) {void login(); return;} setStartTest(t);},
   openAttempt: id => navigate('test' as Tab, id),
   askJerry: m => {setPending(m); setJerryOpen(true);},
- }), [user, profile, attempts, tests, reviews, lessons, completed, daily, admin, navigate, login, refreshUser]);
+ }), [user, profile, attempts, tests, reviews, userCount, lessons, completed, daily, admin, navigate, login, refreshUser]);
 
  if (examId || startTest) return <Exam
   attemptId={examId} test={startTest} user={user}
@@ -114,7 +120,7 @@ export default function Page() {
   <header className={'topbar ' + (scrolled ? 'scrolled' : '')}>
    <div className="topbar-in">
     <Brand/>
-    <nav className="nav" aria-label="Main">{NAV.map(n => <a key={n.id} href={'#' + n.id} aria-current={tab === n.id ? 'page' : undefined}>{n.label}</a>)}</nav>
+    <nav className="nav" aria-label="Main" ref={navRef}><span className="nav-pill" style={pill}/>{NAV.map(n => <a key={n.id} href={'#' + n.id} aria-current={tab === n.id ? 'page' : undefined}>{n.label}</a>)}</nav>
     <div className="top-right">
      {user ? <a href="#me" className="avatar" aria-label="Your profile">{user.user_metadata?.avatar_url ? <img src={user.user_metadata.avatar_url} alt="" referrerPolicy="no-referrer"/> : (firstName({user, profile})[0] || 'G').toUpperCase()}</a>
       : <button className="btn btn-ink btn-sm" onClick={() => void login()}>Sign in</button>}
@@ -135,7 +141,7 @@ export default function Page() {
   </main>
   <footer className="footer"><div className="footer-in"><span>© GOATPrep · Free Digital SAT practice</span><span>Not affiliated with College Board. SAT® is a trademark of College Board.</span></div></footer>
 
-  {tab !== 'jerry' && <button className="jerry-fab hide-m" onClick={() => setJerryOpen(true)} aria-label="Ask Jerry"><JerryHead size={36} tone="green"/><span>Ask Jerry</span></button>}
+  {tab !== 'jerry' && <button className="jerry-fab hide-m" onClick={() => setJerryOpen(true)} aria-label="Ask Jerry" title="Ask Jerry"><Mark size={44}/></button>}
   <nav className="tabbar" aria-label="Tabs">
    <div className="glass-pill">
     <span className="glass-thumb" style={{transform: `translateX(${Math.max(0, TABS.findIndex(t => t.id === tab)) * 100}%)`, opacity: TABS.some(t => t.id === tab) ? 1 : 0}}/>

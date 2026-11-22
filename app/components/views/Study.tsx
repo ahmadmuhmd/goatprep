@@ -13,15 +13,24 @@ export default function Study({ctx, lessonId}: {ctx: AppCtx; lessonId: string | 
  return <Library ctx={ctx}/>;
 }
 
+const PALETTE: Record<string, [string, string, string]> = {
+ 'Standard English Conventions': ['#127A4E', '#E3F3EA', '✎'], 'Expression of Ideas': ['#C2700A', '#FFF0D9', '❝'],
+ 'Craft and Structure': ['#2F5FB3', '#E6EEFC', '◆'], 'Information and Ideas': ['#9A3D86', '#F8E7F4', '✦'],
+ 'Algebra': ['#2F5FB3', '#E6EEFC', 'x'], 'Advanced Math': ['#9A3D86', '#F8E7F4', 'ƒ'],
+ 'Problem-Solving and Data Analysis': ['#C2700A', '#FFF0D9', '%'], 'Geometry and Trigonometry': ['#127A4E', '#E3F3EA', '△'],
+};
+
 function Library({ctx}: {ctx: AppCtx}) {
  const [section, setSection] = useState<'rw' | 'math'>(ctx.profile?.focus === 'math' ? 'math' : 'rw');
  const [query, setQuery] = useState('');
- const list = ctx.lessons.filter(l => l.section === section && (l.title + ' ' + l.domain + ' ' + l.summary).toLowerCase().includes(query.toLowerCase()));
- const domains = [...new Set(ctx.lessons.filter(l => l.section === section).map(l => l.domain))];
- const done = ctx.lessons.filter(l => ctx.completed.includes(l.id)).length;
+ const generated = new Set(ctx.lessons.filter(l => l.id.startsWith('resource-')).map(l => l.domain));
+ const shownLessons = ctx.lessons.filter(l => l.id.startsWith('resource-') || !generated.has(l.domain));
+ const list = shownLessons.filter(l => l.section === section && (l.title + ' ' + l.domain + ' ' + l.summary).toLowerCase().includes(query.toLowerCase()));
+ const domains = [...new Set(shownLessons.filter(l => l.section === section).map(l => l.domain))];
+ const done = shownLessons.filter(l => ctx.completed.includes(l.id)).length;
  return <>
   <div className="page-head">
-   <div><span className="label">{done} of {ctx.lessons.length} done</span><h1>Study</h1></div>
+   <div><span className="label">{done} of {shownLessons.length} done</span><h1>Study</h1></div>
    <div className="seg" role="group" aria-label="Section">
     <button aria-pressed={section === 'rw'} onClick={() => setSection('rw')}>Reading & Writing</button>
     <button aria-pressed={section === 'math'} onClick={() => setSection('math')}>Math</button>
@@ -37,11 +46,12 @@ function Library({ctx}: {ctx: AppCtx}) {
   <div className="domains">
    {domains.map((d, i) => {
     const items = list.filter(l => l.domain === d);
-    const all = ctx.lessons.filter(l => l.domain === d), finished = all.filter(l => ctx.completed.includes(l.id)).length;
+    const all = shownLessons.filter(l => l.domain === d), finished = all.filter(l => ctx.completed.includes(l.id)).length;
     if (!items.length) return null;
-    return <section className="card domain rise" key={d} style={{'--i': i} as React.CSSProperties}>
-     <div className="domain-top"><h2>{d}</h2><span className="chip">{finished}/{all.length}</span></div>
-     <div className="bar" style={{marginBottom: 8}}><i style={{width: (finished / Math.max(all.length, 1) * 100) + '%'}}/></div>
+    const [c, t, g] = PALETTE[d] ?? ['#127A4E', '#E3F3EA', '•'];
+    return <section className="card domain rise" key={d} style={{'--i': i, '--dc': c, '--dt': t} as React.CSSProperties}>
+     <div className="domain-band"><span className="domain-glyph">{g}</span><h2>{d}</h2><span className="domain-count">{finished}/{all.length}</span></div>
+     <div className="bar domain-bar"><i style={{width: (finished / Math.max(all.length, 1) * 100) + '%'}}/></div>
      {items.map(l => <button key={l.id} className="lesson-row" onClick={() => ctx.navigate('study', l.id)}>
       <span className={'dot ' + (ctx.completed.includes(l.id) ? 'done' : '')}>{ctx.completed.includes(l.id) && <Check size={14} strokeWidth={3}/>}</span>
       <span>{l.title}</span>

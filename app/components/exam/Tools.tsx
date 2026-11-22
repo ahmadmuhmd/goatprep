@@ -30,12 +30,17 @@ export function CalculatorPanel({open, onClose}: {open: boolean; onClose: () => 
  const [kind, setKind] = useState<'graphing' | 'scientific'>('graphing');
  const [wide, setWide] = useState(false);
  const [error, setError] = useState('');
- const [pos, setPos] = useState<{x: number; y: number; w: number; h: number} | null>(null);
+ const [pos, setPos] = useState<{x: number; y: number; w: number; h: number}>({x: 12, y: 12, w: 380, h: 560});
  const gHost = useRef<HTMLDivElement>(null), sHost = useRef<HTMLDivElement>(null);
  const inst = useRef<{g?: DesmosInstance; s?: DesmosInstance}>({});
- const drag = useRef<{mode: 'move' | 'size'; x: number; y: number; start: {x: number; y: number; w: number; h: number}} | null>(null);
+ type Mode = 'move' | 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+ const drag = useRef<{mode: Mode; x: number; y: number; start: {x: number; y: number; w: number; h: number}; bounds: DOMRect} | null>(null);
  const panel = useRef<HTMLDivElement>(null);
-
+ useEffect(() => {
+  // Fit the starting window to the space available.
+  const parent = panel.current?.parentElement?.getBoundingClientRect();
+  if (parent) setPos(p => ({...p, h: Math.max(320, Math.min(620, parent.height - 24)), w: Math.min(p.w, parent.width - 24)}));
+ }, []);
  useEffect(() => {
   if (!open) return;
   let live = true;
@@ -48,28 +53,37 @@ export function CalculatorPanel({open, onClose}: {open: boolean; onClose: () => 
   return () => {live = false;};
  }, [open, kind]);
  useEffect(() => () => {inst.current.g?.destroy(); inst.current.s?.destroy();}, []);
- useEffect(() => {const t = setTimeout(() => {inst.current.g?.resize(); inst.current.s?.resize();}, 50); return () => clearTimeout(t);}, [wide, pos]);
+ useEffect(() => {const t = setTimeout(() => {inst.current.g?.resize(); inst.current.s?.resize();}, 50); return () => clearTimeout(t);}, [wide, pos.w, pos.h]);
 
- function begin(mode: 'move' | 'size', e: React.PointerEvent) {
-  if ((e.target as HTMLElement).closest('button') && mode === 'move') return;
-  const r = panel.current!.getBoundingClientRect(), parent = panel.current!.parentElement!.getBoundingClientRect();
-  const start = pos ?? {x: r.left - parent.left, y: r.top - parent.top, w: r.width, h: r.height};
-  drag.current = {mode, x: e.clientX, y: e.clientY, start};
-  (e.target as HTMLElement).setPointerCapture(e.pointerId);
+ function begin(mode: Mode, e: React.PointerEvent) {
+  if (mode === 'move' && (e.target as HTMLElement).closest('button')) return;
+  e.preventDefault();
+  drag.current = {mode, x: e.clientX, y: e.clientY, start: pos, bounds: panel.current!.parentElement!.getBoundingClientRect()};
+  (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
  }
  function move(e: React.PointerEvent) {
   const d = drag.current; if (!d) return;
-  const dx = e.clientX - d.x, dy = e.clientY - d.y;
-  setPos(d.mode === 'move' ? {...d.start, x: Math.max(0, d.start.x + dx), y: Math.max(0, d.start.y + dy)} : {...d.start, w: Math.max(300, d.start.w + dx), h: Math.max(320, d.start.h + dy)});
+  const dx = e.clientX - d.x, dy = e.clientY - d.y, {start: s0, bounds} = d, MIN_W = 300, MIN_H = 300;
+  let {x, y, w, h} = s0;
+  if (d.mode === 'move') {x = s0.x + dx; y = s0.y + dy;}
+  if (d.mode.includes('e')) w = s0.w + dx;
+  if (d.mode.includes('s')) h = s0.h + dy;
+  if (d.mode.includes('w')) {w = s0.w - dx; x = s0.x + dx; if (w < MIN_W) {x -= MIN_W - w; w = MIN_W;}}
+  if (d.mode.includes('n') && d.mode !== 'move') {h = s0.h - dy; y = s0.y + dy; if (h < MIN_H) {y -= MIN_H - h; h = MIN_H;}}
+  w = Math.max(MIN_W, Math.min(w, bounds.width)); h = Math.max(MIN_H, Math.min(h, bounds.height));
+  x = Math.max(0, Math.min(x, bounds.width - 80)); y = Math.max(0, Math.min(y, bounds.height - 42));
+  setPos({x, y, w, h});
  }
- const style = pos ? {'--cx': pos.x + 'px', '--cy': pos.y + 'px', '--cw': pos.w + 'px', '--ch': pos.h + 'px'} : {'--cw': wide ? 'min(760px, 70vw)' : '380px'};
- return <div ref={panel} className={'bb-calc ' + (pos ? 'floating' : '')} style={{...style, display: open ? 'flex' : 'none'} as React.CSSProperties} aria-label="Calculator">
-  <div className="bb-calc-head" onPointerDown={e => begin('move', e)} onPointerMove={move} onPointerUp={() => {drag.current = null;}}>
+ const end = () => {drag.current = null; inst.current.g?.resize(); inst.current.s?.resize();};
+ const handle = (m: Mode) => ({onPointerDown: (e: React.PointerEvent) => begin(m, e), onPointerMove: move, onPointerUp: end, onPointerCancel: end});
+ const style = {'--cx': pos.x + 'px', '--cy': pos.y + 'px', '--cw': pos.w + 'px', '--ch': pos.h + 'px'};
+ return <div ref={panel} className="bb-calc floating" style={{...style, display: open ? 'flex' : 'none'} as React.CSSProperties} aria-label="Calculator">
+  <div className="bb-calc-head" {...handle('move')}>
    <button className="bb-calc-tab" aria-pressed={kind === 'graphing'} onClick={() => setKind('graphing')}>
     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M1 13c3-9 5-9 7-4s4 5 7-4"/></svg>Graphing</button>
    <button className="bb-calc-tab" aria-pressed={kind === 'scientific'} onClick={() => setKind('scientific')}><CalcIcon size={13}/>Scientific</button>
    <GripHorizontal className="grip" size={22}/>
-   <button className="hbtn" aria-label={wide ? 'Collapse calculator' : 'Expand calculator'} onClick={() => {setPos(null); setWide(w => !w);}}>{wide ? <Minimize2 size={17}/> : <Maximize2 size={17}/>}</button>
+   <button className="hbtn" aria-label={wide ? 'Collapse calculator' : 'Expand calculator'} onClick={() => {const b = panel.current!.parentElement!.getBoundingClientRect(); setPos(p => ({...p, w: wide ? 380 : Math.min(760, b.width - p.x - 12), h: wide ? p.h : Math.max(p.h, Math.min(680, b.height - p.y - 12))})); setWide(w => !w);}}>{wide ? <Minimize2 size={17}/> : <Maximize2 size={17}/>}</button>
    <button className="hbtn" aria-label="Close calculator" onClick={onClose}><X size={20}/></button>
   </div>
   <div className="bb-calc-host">
@@ -77,8 +91,8 @@ export function CalculatorPanel({open, onClose}: {open: boolean; onClose: () => 
    <div ref={gHost} style={{display: kind === 'graphing' ? 'block' : 'none'}}/>
    <div ref={sHost} style={{display: kind === 'scientific' ? 'block' : 'none'}}/>
   </div>
-  {pos && <span className="bb-calc-resize" onPointerDown={e => begin('size', e)} onPointerMove={move} onPointerUp={() => {drag.current = null;}} aria-hidden>
-   <svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 9 9 1M5 9l4-4" stroke="#333" strokeWidth="1.5"/></svg></span>}
+  {(['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'] as Mode[]).map(m => <span key={m} className={'bb-rz rz-' + m} {...handle(m)} aria-hidden/>)}
+  <span className="bb-calc-resize" {...handle('se')} aria-hidden><svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 9 9 1M5 9l4-4" stroke="#333" strokeWidth="1.5"/></svg></span>
  </div>;
 }
 

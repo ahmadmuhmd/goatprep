@@ -14,7 +14,7 @@ export default function Practice({ctx}: {ctx: AppCtx}) {
  const best = finished.length ? Math.max(...finished.map(a => totalScore(a) ?? 0)) : null;
  const featured = active ? ctx.tests.find(t => t.id === active.test_id) : next;
  return <>
-  <div className="page-head"><div><span className="label">{finished.length} of {slots} completed{best ? ' · best ' + best : ''}</span><h1>Practice tests</h1></div></div>
+  <div className="page-head"><div><span className="label">{finished.length} of {slots} completed{best ? ' · best ' + best : ''}</span><h1>Tests</h1></div></div>
 
   {featured && <section className="next-test rise">
    <div className="nt-num">{String(featured.number).padStart(2, '0')}</div>
