@@ -58,7 +58,7 @@ export const viewport: Viewport = {
  colorScheme: 'light dark',
 };
 
-const themeScript = `try{document.documentElement.dataset.theme=localStorage.getItem('goatprep-theme')||'dark'}catch{}`;
+const themeScript = `try{document.documentElement.dataset.theme=localStorage.getItem('goatprep-theme')||'light'}catch{}`;
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
  return <html lang="en" suppressHydrationWarning className={[display.variable, body.variable, examSans.variable, examSerif.variable].join(' ')}>
