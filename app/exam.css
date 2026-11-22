@@ -186,7 +186,7 @@
 .bb-check{flex:1;overflow:auto;display:flex;flex-direction:column;align-items:center;padding:30px 24px}
 .bb-check h1{font-weight:400;font-size:30px;margin:0 0 18px;font-family:var(--font-exam-sans),Roboto,sans-serif;letter-spacing:0}
 .bb-check>p{margin:0 0 6px;font-size:15px;text-align:center}
-.bb-check .bb-card{margin-top:22px;width:min(520px,100%)}
+.bb-check .bb-card{margin-top:22px;width:min(620px,100%)}
 .bb-check .bb-card-top{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:14px;margin-bottom:22px;border-bottom:1px solid #ddd;flex-wrap:wrap}
 .bb-check .bb-card-top b{font-size:17px}
 .bb-check .bb-grid{gap:18px 14px}
@@ -378,3 +378,4 @@
 .pr-foot-box{display:flex;align-items:center;gap:14px;border:1.2px solid #000;border-radius:12px;padding:12px 16px;margin-top:14px}
 .pr-foot-box p{margin:0;font-size:9.5px;line-height:1.45}
 .pr-copy{margin-top:16px;font-size:8.5px}
+.print-report.pr-capture{display:block;position:fixed;left:-10000px;top:0;width:760px;background:#fff;color:#000;font-family:var(--font-exam-sans),Roboto,Arial,sans-serif;font-size:10px}

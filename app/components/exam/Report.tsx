@@ -27,6 +27,7 @@ const slug = (s: string) => 'resource-' + s.toLowerCase().replace(/[^a-z0-9]+/g,
 
 export default function Report({attempt, review, name, onExit, onStudy}: {attempt: Attempt; review: ReviewItem[]; name: string; onExit: () => void; onStudy: (id: string) => void}) {
  const [tab, setTab] = useState<'all' | 'rw' | 'math'>('all');
+ const [saving, setSaving] = useState(false);
  const [showKey, setShowKey] = useState(false), [per, setPer] = useState<10 | 30 | 0>(10), [page, setPage] = useState(0);
  const [open, setOpen] = useState<number | null>(null), [explain, setExplain] = useState(false);
  const date = new Date(attempt.completed_at!).toLocaleDateString(undefined, {month: 'long', day: 'numeric', year: 'numeric'});
@@ -51,7 +52,7 @@ export default function Report({attempt, review, name, onExit, onStudy}: {attemp
    <div className="rp-actions">
     <button onClick={() => {setTab('all'); setOpen(0);}}>Review All Questions</button>
     <button onClick={() => {const weak = weakest(rows); if (weak) onStudy(slug(weak));}}>Study My Weakest Skill</button>
-    <button onClick={() => {const t = document.title; document.title = `GOATPrep_Practice_${testNo}_${new Date(attempt.completed_at!).toISOString().slice(0, 10)}`; window.print(); document.title = t;}}>Download PDF</button>
+    <button disabled={saving} onClick={async () => {setSaving(true); try {await downloadReportPdf(`GOATPrep_test${testNo}_${(name.trim().split(/\s+/)[0] || 'student').toLowerCase().replace(/[^a-z0-9]/g, '')}`);} finally {setSaving(false);}}}>{saving ? 'Preparing PDF…' : 'Download PDF'}</button>
     <button onClick={onExit}>All Practice Tests</button>
    </div>
   </div></section>
@@ -203,4 +204,23 @@ function PrintReport({attempt, rows, name, date, testNo}: {attempt: Attempt; row
   </section>
   <footer className="pr-copy">© {new Date().getFullYear()} GOATPrep · goatprep.me · Not affiliated with College Board. SAT® is a trademark of College Board.</footer>
  </div>, host);
+}
+
+/** Renders the hidden official-style report to an image and saves it straight to a one-page PDF. */
+async function downloadReportPdf(fileName: string) {
+ const el = document.querySelector<HTMLElement>('.print-report');
+ if (!el) return;
+ const [{toPng}, {jsPDF}] = await Promise.all([import('html-to-image'), import('jspdf')]);
+ el.classList.add('pr-capture');
+ try {
+  await document.fonts.ready;
+  const png = await toPng(el, {pixelRatio: 2.5, backgroundColor: '#ffffff', cacheBust: true, width: 760, style: {position: 'static', left: '0', top: '0', margin: '0'}});
+  const img = new Image(); img.src = png; await img.decode();
+  const pdf = new jsPDF({unit: 'pt', format: 'letter'});
+  const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight(), m = 32;
+  let w = pw - m * 2, h = w * img.height / img.width;
+  if (h > ph - m * 2) {h = ph - m * 2; w = h * img.width / img.height;}
+  pdf.addImage(png, 'PNG', (pw - w) / 2, m, w, h);
+  pdf.save(fileName + '.pdf');
+ } finally {el.classList.remove('pr-capture');}
 }
