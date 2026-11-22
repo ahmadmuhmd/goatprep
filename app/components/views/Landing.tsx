@@ -1,6 +1,6 @@
 "use client";
 import {useEffect, useRef, useState} from 'react';
-import {ArrowRight, BadgeCheck, BarChart3, Calculator, CalendarCheck, ClipboardCheck, Highlighter, MessageCircle, Minus, Play, Plus, Star} from 'lucide-react';
+import {ArrowRight, BadgeCheck, Minus, Play, Plus, Star} from 'lucide-react';
 import type {AppCtx} from '../site/context';
 import {WORDS, wordOfTheDay} from '@/lib/vocab';
 import ProductShot, {MathSlide, Notes, RW, Score} from './ProductShot';
@@ -34,18 +34,15 @@ export default function Landing({ctx}: {ctx: AppCtx}) {
    <Pendants/>
    <div className="rise hero-copy">
     <h1>The Digital SAT, <em>practiced for real.</em></h1>
-    <p className="m-sub">Free adaptive practice tests, a built-in Desmos calculator and Jerry, your SAT tutor.</p>
     <div className="hero-cta">
      <button className="btn btn-primary btn-lg" onClick={() => ctx.navigate('practice')}><Play size={18}/> Take a free test</button>
      <button className="btn btn-ghost btn-lg" onClick={ctx.login}>Sign in with Google</button>
     </div>
    </div>
    <div className="hero-art rise" style={{'--i': 2} as React.CSSProperties}><ProductShot/></div>
-   <MobileHeroArt/>
   </section>
   <Stats ctx={ctx}/>
   <FeatureTabs ctx={ctx}/>
-  <MobileBento ctx={ctx}/>
   <Reviews ctx={ctx}/>
   <Faq/>
   <section className="cta-dark">
@@ -57,54 +54,6 @@ export default function Landing({ctx}: {ctx: AppCtx}) {
    </div>
   </section>
  </>;
-}
-
-/** Phone-only hero art: a cluster of floating cards in place of the simulator screenshot. */
-function MobileHeroArt() {
- return <div className="m-art" aria-hidden>
-  <div className="m-card m-score">
-   <span className="m-k">Sample score report</span>
-   <b className="m-big">1480</b>
-   <div className="m-bars"><span style={{'--w': '88%'} as React.CSSProperties}><i/>Math</span><span style={{'--w': '74%'} as React.CSSProperties}><i/>Reading &amp; Writing</span></div>
-  </div>
-  <div className="m-card m-q">
-   <span className="chip chip-green">Daily · Math</span>
-   <p>If 3x + 7 = 22, what is 6x?</p>
-   <div className="m-opts"><span>A · 5</span><span className="sel">B · 30</span><span>C · 15</span></div>
-  </div>
-  <div className="m-card m-chat"><JerryHead size={28}/><span>Want a quick quiz on semicolons?</span></div>
-  <Charm kind="calculator" className="m-calc"/>
-  <Charm kind="goat" className="m-goat"/>
- </div>;
-}
-
-const BENTO = [
- {key: 'tests', Icon: ClipboardCheck, label: 'Practice tests', title: 'Feels exactly like Bluebook.', text: 'Full adaptive tests with the real layout, timer and tools.', color: '#BFE7D4', go: 'practice'},
- {key: 'desmos', Icon: Calculator, label: 'Calculator', title: 'Desmos, built in.', text: 'Drag, resize, graph.', color: '#CFE3F7', go: 'practice'},
- {key: 'notes', Icon: Highlighter, label: 'Annotate', title: 'Highlight, note, eliminate.', text: '', color: '#F6E2A6', go: 'practice'},
- {key: 'score', Icon: BarChart3, label: 'Scoring', title: 'A real score, instantly.', text: '', color: '#F7C9A7', go: 'practice'},
- {key: 'daily', Icon: CalendarCheck, label: 'Daily', title: 'Two questions a day.', text: 'Keep your streak going.', color: '#DCD0F5', go: 'daily'},
- {key: 'jerry', Icon: MessageCircle, label: 'Your tutor', title: 'Stuck? Ask Jerry.', text: 'Explanations, quizzes and study plans any time.', color: '#C9EDEA', go: 'jerry'},
-] as const;
-
-/** Phone-only features grid: mixed tile sizes instead of one tab card. */
-function MobileBento({ctx}: {ctx: AppCtx}) {
- return <section className="features-bento">
-  <div className="ft-head">
-   <span className="eyebrow-i">Features</span>
-   <h2>Everything for test day, <em>in one place.</em></h2>
-  </div>
-  <div className="bento">
-   {BENTO.map(({key, Icon, label, title, text, color, go}) => <button key={key} className={'bt bt-' + key} style={{background: color}}
-    onClick={() => go === 'jerry' ? ctx.askJerry('Hi Jerry! What can you help me with?') : ctx.navigate(go)}>
-    <span className="bt-ico"><Icon size={20}/></span>
-    <span className="bt-label">{label}</span>
-    <b className="bt-title">{title}</b>
-    {text && <span className="bt-text">{text}</span>}
-    <ArrowRight size={18} className="bt-go"/>
-   </button>)}
-  </div>
- </section>;
 }
 
 function Stats({ctx}: {ctx: AppCtx}) {
@@ -192,13 +141,6 @@ function Reviews({ctx}: {ctx: AppCtx}) {
      <blockquote>“{r.body}”</blockquote>
      <figcaption>{r.display_name} · <span className="verified-l"><BadgeCheck size={13}/> Verified Google account</span></figcaption>
     </div>
-   </figure>)}
-  </div>
-  <div className="rv-swipe">
-   {list.slice(0, 12).map(r => <figure key={r.id} className="rv-card">
-    <span className="stars">{[1, 2, 3, 4, 5].map(k => <Star key={k} size={15} fill={r.rating >= k ? 'currentColor' : 'none'}/>)}</span>
-    <blockquote>“{r.body}”</blockquote>
-    <figcaption><span className="review-avatar" aria-hidden>{r.display_name.trim()[0]?.toUpperCase() || 'S'}</span><span>{r.display_name}<span className="verified-l"><BadgeCheck size={13}/> Verified Google account</span></span></figcaption>
    </figure>)}
   </div>
   {pages > 1 && <div className="rv-dots">{Array.from({length: pages}, (_, n) => <button key={n} aria-label={'Reviews page ' + (n + 1)} aria-current={n === page} onClick={() => setPage(n)}/>)}</div>}
