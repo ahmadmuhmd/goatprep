@@ -1,7 +1,7 @@
 "use client";
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import type {User} from '@supabase/supabase-js';
-import {BookOpen, CalendarCheck, Home as HomeIcon, Target, UserRound, X} from 'lucide-react';
+import {BookOpen, CalendarCheck, Home as HomeIcon, ShieldCheck, Target, UserRound, X} from 'lucide-react';
 import {supabase} from '@/lib/supabase';
 import {api} from '@/lib/client';
 import {lessons as foundationLessons} from '@/lib/lessons';
@@ -20,7 +20,8 @@ import Daily from './components/views/Daily';
 import Me from './components/views/Me';
 import Onboarding from './components/views/Onboarding';
 import JerryChat, {JerryPage, useJerryChat} from './components/views/Jerry';
-import {ManageReviews, WriteReview} from './components/views/Community';
+import {WriteReview} from './components/views/Community';
+import AdminCenter from './components/views/Admin';
 import {forgetDaily} from './components/views/DailyCard';
 import Exam from './components/exam/Exam';
 
@@ -44,6 +45,17 @@ export default function Page() {
  const [completed, setCompletedState] = useState<string[]>([]), [daily, setDaily] = useState<DailyStats | null>(null), [admin, setAdmin] = useState(false);
  const [notice, setNotice] = useState(''), [scrolled, setScrolled] = useState(false);
  const navRef = useRef<HTMLElement>(null), [pill, setPill] = useState<React.CSSProperties>({opacity: 0});
+ // Anonymous page-view counter for the Admin Center: a random id kept in this browser, no IP. The owner's own visits are skipped.
+ const where = examId || startTest ? 'test' : tab, signedIn = !!user;
+ useEffect(() => {
+  try {
+   if (admin) {localStorage.setItem('goatprep-no-track', '1'); return;}
+   if (localStorage.getItem('goatprep-no-track')) return;
+   let id = localStorage.getItem('goatprep-visitor') || '';
+   if (!id) {id = crypto.randomUUID(); localStorage.setItem('goatprep-visitor', id);}
+   void fetch('/api/visit', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({visitor: id, path: where, signedIn})}).catch(() => {});
+  } catch {/* storage blocked: skip counting */}
+ }, [where, signedIn, admin]);
  useEffect(() => {
   const place = () => {const a = navRef.current?.querySelector('a[aria-current=page]') as HTMLElement | null; setPill(a ? {opacity: 1, width: a.offsetWidth, transform: `translateX(${a.offsetLeft}px)`} : {opacity: 0});};
   place(); window.addEventListener('resize', place); return () => window.removeEventListener('resize', place);
@@ -124,6 +136,7 @@ export default function Page() {
     <Brand/>
     <nav className="nav" aria-label="Main" ref={navRef}><span className="nav-pill" style={pill}/>{NAV.map(n => <a key={n.id} href={'#' + n.id} aria-current={tab === n.id ? 'page' : undefined}>{n.label}</a>)}</nav>
     <div className="top-right">
+     {admin && <a href="#admin" className="admin-link" aria-label="Admin center" title="Admin center" aria-current={tab === 'admin' ? 'page' : undefined}><ShieldCheck size={19}/></a>}
      {user ? <a href="#me" className="avatar" aria-label="Your profile">{user.user_metadata?.avatar_url ? <img src={user.user_metadata.avatar_url} alt="" referrerPolicy="no-referrer"/> : (firstName({user, profile})[0] || 'G').toUpperCase()}</a>
       : <button className="btn btn-ink btn-sm" onClick={() => void login()}>Sign in</button>}
     </div>
@@ -139,7 +152,7 @@ export default function Page() {
    {tab === 'jerry' && <JerryPage ctx={ctx} chats={chats} setChats={setChats} pending={pending} clearPending={() => setPending(undefined)}/>}
    {tab === 'me' && <Me ctx={ctx}/>}
    {tab === 'reviews' && <WriteReview ctx={ctx}/>}
-   {tab === 'admin' && <ManageReviews ctx={ctx}/>}
+   {tab === 'admin' && <AdminCenter ctx={ctx}/>}
   </main>
   <footer className="footer"><div className="footer-in"><span>© GOATPrep · Free Digital SAT practice</span><span>Not affiliated with College Board. SAT® is a trademark of College Board.</span></div></footer>
 

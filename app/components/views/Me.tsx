@@ -68,7 +68,7 @@ export default function Me({ctx}: {ctx: AppCtx}) {
     <div className="settings">
      <button className="set-row" onClick={toggleTheme}><span style={{display: 'flex', gap: 12, alignItems: 'center'}}>{theme === 'light' ? <Moon size={18}/> : <Sun size={18}/>} {theme === 'light' ? 'Dark mode' : 'Light mode'}</span><ChevronRight size={18}/></button>
      <button className="set-row" onClick={() => ctx.navigate('reviews')}><span style={{display: 'flex', gap: 12, alignItems: 'center'}}><Star size={18}/> Write a review</span><ChevronRight size={18}/></button>
-     {ctx.admin && <button className="set-row" onClick={() => ctx.navigate('admin')}><span style={{display: 'flex', gap: 12, alignItems: 'center'}}><ShieldCheck size={18}/> Manage reviews</span><ChevronRight size={18}/></button>}
+     {ctx.admin && <button className="set-row" onClick={() => ctx.navigate('admin')}><span style={{display: 'flex', gap: 12, alignItems: 'center'}}><ShieldCheck size={18}/> Admin center</span><ChevronRight size={18}/></button>}
      <button className="set-row" onClick={ctx.logout}><span style={{display: 'flex', gap: 12, alignItems: 'center', color: 'var(--bad)'}}><LogOut size={18}/> Sign out</span><span className="muted" style={{fontSize: 13}}>{ctx.user.email}</span></button>
     </div>
    </div>
