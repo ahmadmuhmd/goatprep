@@ -36,7 +36,7 @@ export default function AdminCenter({ctx}: {ctx: AppCtx}) {
  }, [ctx.admin, load]);
  if (!ctx.admin) return <p className="empty">Owner access only. Sign in with your admin email.</p>;
  return <div className="adm">
-  <div className="page-head">
+  <div className="page-head adm-hero">
    <div><span className="eyebrow-i">Owner only</span><h1><ShieldCheck size={30} style={{verticalAlign: '-4px', marginRight: 8}}/>Admin center</h1></div>
    <div className="adm-tools">
     {data && <span className="muted adm-stamp">Updated {ago(data.generatedAt)}</span>}
@@ -68,17 +68,17 @@ function Warnings({d}: {d: AdminStats}) {
 function Overview({d, go}: {d: AdminStats; go: (s: Sub) => void}) {
  const accuracy = d.learning.daily_answered ? Math.round((d.learning.daily_correct / d.learning.daily_answered) * 100) : null;
  const completion = d.tests.started ? Math.round((d.tests.completed / d.tests.started) * 100) : 0;
- const kpis: {icon: React.ReactNode; label: string; value: string; note: string}[] = [
-  {icon: <Users size={18}/>, label: 'Registered accounts', value: nf(d.users.total), note: `+${nf(d.users.d7)} this week · +${nf(d.users.d1)} today`},
-  {icon: <UserCheck size={18}/>, label: 'Active students (7 days)', value: nf(d.active.d7), note: `${nf(d.active.d1)} in 24 h · ${nf(d.active.d30)} in 30 days`},
-  {icon: <Eye size={18}/>, label: 'Page views (7 days)', value: nf(d.visits.views_7d), note: `${nf(d.visits.views_today)} today · ${nf(d.visits.views)} all time`},
-  {icon: <Users size={18}/>, label: 'Unique visitors (7 days)', value: nf(d.visits.visitors_7d), note: `${nf(d.visits.visitors_today)} today · ${nf(d.visits.visitors)} all time`},
-  {icon: <ClipboardCheck size={18}/>, label: 'Tests completed', value: nf(d.tests.completed), note: `${nf(d.tests.started)} started · ${completion}% finish · ${nf(d.tests.in_progress)} in progress`},
-  {icon: <Trophy size={18}/>, label: 'Average total score', value: d.tests.avg_total ? String(Math.round(d.tests.avg_total)) : '—', note: 'across completed tests'},
-  {icon: <Star size={18}/>, label: 'Reviews', value: nf(d.reviews.n), note: d.reviews.n ? `${d.reviews.avg.toFixed(1)} average · ${nf(d.reviews.featured)} featured` : 'none yet'},
-  {icon: <CalendarCheck size={18}/>, label: 'Daily questions answered', value: nf(d.learning.daily_answered), note: `${accuracy === null ? 'no answers yet' : accuracy + '% correct'} · ${nf(d.learning.daily_users)} students`},
-  {icon: <BookOpen size={18}/>, label: 'Lessons completed', value: nf(d.learning.lessons), note: `by ${nf(d.learning.lesson_users)} students`},
-  {icon: <MessageCircle size={18}/>, label: 'Jerry messages', value: nf(d.learning.jerry_total), note: `${nf(d.learning.jerry_today)} today · ${nf(d.learning.jerry_users)} students`},
+ const kpis: {icon: React.ReactNode; label: string; value: string; note: string; tone: string}[] = [
+  {icon: <Users size={18}/>, label: 'Registered accounts', value: nf(d.users.total), note: `+${nf(d.users.d7)} this week · +${nf(d.users.d1)} today`, tone: 'green'},
+  {icon: <UserCheck size={18}/>, label: 'Active students (7 days)', value: nf(d.active.d7), note: `${nf(d.active.d1)} in 24 h · ${nf(d.active.d30)} in 30 days`, tone: 'green'},
+  {icon: <Eye size={18}/>, label: 'Page views (7 days)', value: nf(d.visits.views_7d), note: `${nf(d.visits.views_today)} today · ${nf(d.visits.views)} all time`, tone: 'blue'},
+  {icon: <Users size={18}/>, label: 'Unique visitors (7 days)', value: nf(d.visits.visitors_7d), note: `${nf(d.visits.visitors_today)} today · ${nf(d.visits.visitors)} all time`, tone: 'blue'},
+  {icon: <ClipboardCheck size={18}/>, label: 'Tests completed', value: nf(d.tests.completed), note: `${nf(d.tests.started)} started · ${completion}% finish · ${nf(d.tests.in_progress)} in progress`, tone: 'violet'},
+  {icon: <Trophy size={18}/>, label: 'Average total score', value: d.tests.avg_total ? String(Math.round(d.tests.avg_total)) : '—', note: 'across completed tests', tone: 'violet'},
+  {icon: <Star size={18}/>, label: 'Reviews', value: nf(d.reviews.n), note: d.reviews.n ? `${d.reviews.avg.toFixed(1)} average · ${nf(d.reviews.featured)} featured` : 'none yet', tone: 'amber'},
+  {icon: <CalendarCheck size={18}/>, label: 'Daily questions answered', value: nf(d.learning.daily_answered), note: `${accuracy === null ? 'no answers yet' : accuracy + '% correct'} · ${nf(d.learning.daily_users)} students`, tone: 'teal'},
+  {icon: <BookOpen size={18}/>, label: 'Lessons completed', value: nf(d.learning.lessons), note: `by ${nf(d.learning.lesson_users)} students`, tone: 'teal'},
+  {icon: <MessageCircle size={18}/>, label: 'Jerry messages', value: nf(d.learning.jerry_total), note: `${nf(d.learning.jerry_today)} today · ${nf(d.learning.jerry_users)} students`, tone: 'coral'},
  ];
  const f = d.funnel;
  const steps: [string, number][] = [['Registered', f.registered], ['Finished setup', f.onboarded], ['Started a test', f.started_test], ['Completed a test', f.completed_test], ['Did a lesson', f.did_lesson], ['Answered a daily question', f.did_daily], ['Asked Jerry', f.used_jerry], ['Wrote a review', f.reviewed]];
@@ -87,34 +87,34 @@ function Overview({d, go}: {d: AdminStats; go: (s: Sub) => void}) {
  const ratings = [5, 4, 3, 2, 1].map(r => ({rating: r, n: d.ratingDist.find(x => x.rating === r)?.n ?? 0}));
  return <>
   <Warnings d={d}/>
-  <div className="adm-kpis">{kpis.map(k => <div className="adm-kpi" key={k.label}><span className="adm-kpi-ico">{k.icon}</span><span className="adm-kpi-label">{k.label}</span><b>{k.value}</b><small>{k.note}</small></div>)}</div>
+  <div className="adm-kpis">{kpis.map(k => <div className={'adm-kpi t-' + k.tone} key={k.label}><span className="adm-kpi-ico">{k.icon}</span><span className="adm-kpi-label">{k.label}</span><b>{k.value}</b><small>{k.note}</small></div>)}</div>
 
   <div className="adm-grid">
-   <Panel title="New accounts" sub="last 30 days"><Bars data={d.signups.map(s => ({label: shortDay(s.day), value: s.n}))} unit="sign-ups"/></Panel>
-   <Panel title="Page views" sub="last 30 days"><Bars data={d.visitSeries.map(s => ({label: shortDay(s.day), value: s.views}))} unit="views"/></Panel>
-   <Panel title="Unique visitors" sub="last 30 days"><Bars data={d.visitSeries.map(s => ({label: shortDay(s.day), value: s.visitors}))} unit="visitors"/></Panel>
-   <Panel title="Tests started" sub="last 30 days"><Bars data={d.testSeries.map(s => ({label: shortDay(s.day), value: s.n}))} unit="tests"/></Panel>
+   <Panel title="New accounts" tone="green" sub="last 30 days"><Bars data={d.signups.map(s => ({label: shortDay(s.day), value: s.n}))} unit="sign-ups"/></Panel>
+   <Panel title="Page views" tone="blue" sub="last 30 days"><Bars data={d.visitSeries.map(s => ({label: shortDay(s.day), value: s.views}))} unit="views"/></Panel>
+   <Panel title="Unique visitors" tone="blue" sub="last 30 days"><Bars data={d.visitSeries.map(s => ({label: shortDay(s.day), value: s.visitors}))} unit="visitors"/></Panel>
+   <Panel title="Tests started" tone="violet" sub="last 30 days"><Bars data={d.testSeries.map(s => ({label: shortDay(s.day), value: s.n}))} unit="tests"/></Panel>
   </div>
 
   <div className="adm-grid adm-grid-3">
-   <Panel title="Student journey" sub="how far students get">
+   <Panel title="Student journey" tone="green" sub="how far students get">
     <div className="adm-rows">{steps.map(([label, n]) => <div className="adm-row" key={label}><span>{label}</span><div className="adm-track"><i style={{width: pct(n, f.registered)}}/></div><b>{nf(n)}<em>{pct(n, f.registered)}</em></b></div>)}</div>
    </Panel>
-   <Panel title="Score spread" sub="completed tests, total score">
+   <Panel title="Score spread" tone="violet" sub="completed tests, total score">
     {d.scoreBuckets.length ? <div className="adm-rows">{d.scoreBuckets.map(b => <div className="adm-row" key={b.bucket}><span>{b.bucket}–{b.bucket + 99}</span><div className="adm-track"><i style={{width: (b.n / maxScore) * 100 + '%'}}/></div><b>{nf(b.n)}</b></div>)}</div> : <Empty text="No completed tests yet."/>}
    </Panel>
-   <Panel title="Where visitors go" sub="top pages, 30 days">
+   <Panel title="Where visitors go" tone="blue" sub="top pages, 30 days">
     {d.topPages.length ? <div className="adm-rows">{d.topPages.map(p => <div className="adm-row" key={p.path}><span>{PAGE_NAMES[p.path] ?? p.path}</span><div className="adm-track"><i style={{width: (p.n / maxPage) * 100 + '%'}}/></div><b>{nf(p.n)}</b></div>)}</div> : <Empty text="No visits recorded yet."/>}
     {d.visits.views > 0 && <p className="adm-foot">{pct(d.visits.signed_in_views, d.visits.views)} of views came from signed-in students.</p>}
    </Panel>
   </div>
 
   <div className="adm-grid">
-   <Panel title="Practice tests" sub="per test">
+   <Panel title="Practice tests" tone="violet" sub="per test">
     <div className="adm-table-wrap"><table className="adm-table"><thead><tr><th>Test</th><th>Started</th><th>Completed</th><th>Avg score</th></tr></thead>
      <tbody>{d.perTest.map(t => <tr key={t.number}><td>{t.title}{!t.published && <span className="adm-tag">draft</span>}</td><td>{nf(t.started)}</td><td>{nf(t.completed)}</td><td>{t.avg_score ?? '—'}</td></tr>)}</tbody></table></div>
    </Panel>
-   <Panel title="Learning" sub="lessons and daily questions">
+   <Panel title="Learning" tone="teal" sub="lessons and daily questions">
     <div className="adm-rows">
      {d.dailyBySection.map(s => <div className="adm-row" key={s.section}><span>Daily {s.section === 'rw' ? 'Reading & Writing' : 'Math'}</span><div className="adm-track"><i style={{width: pct(s.ok, s.n)}}/></div><b>{pct(s.ok, s.n)}<em>{nf(s.n)} answers</em></b></div>)}
      {d.topLessons.map(l => <div className="adm-row" key={l.lesson_id}><span className="adm-clip" title={l.lesson_id}>{l.lesson_id.replace(/^resource-/, '').replace(/-/g, ' ')}</span><div className="adm-track"><i style={{width: (l.n / maxLesson) * 100 + '%'}}/></div><b>{nf(l.n)}</b></div>)}
@@ -124,11 +124,11 @@ function Overview({d, go}: {d: AdminStats; go: (s: Sub) => void}) {
   </div>
 
   <div className="adm-grid">
-   <Panel title="Reviews" sub={d.reviews.n ? `${d.reviews.avg.toFixed(1)} average from ${nf(d.reviews.n)}` : 'no reviews yet'} action={<button className="btn btn-ghost btn-sm" onClick={() => go('reviews')}>Manage</button>}>
-    <div className="adm-rows">{ratings.map(r => <div className="adm-row" key={r.rating}><span>{r.rating} ★</span><div className="adm-track adm-track-star"><i style={{width: (r.n / maxRating) * 100 + '%'}}/></div><b>{nf(r.n)}</b></div>)}</div>
+   <Panel title="Reviews" tone="amber" sub={d.reviews.n ? `${d.reviews.avg.toFixed(1)} average from ${nf(d.reviews.n)}` : 'no reviews yet'} action={<button className="btn btn-ghost btn-sm" onClick={() => go('reviews')}>Manage</button>}>
+    <div className="adm-rows">{ratings.map(r => <div className="adm-row" key={r.rating}><span>{r.rating} ★</span><div className="adm-track"><i style={{width: (r.n / maxRating) * 100 + '%'}}/></div><b>{nf(r.n)}</b></div>)}</div>
     {d.latestReviews.slice(0, 3).map(r => <blockquote className="adm-quote" key={r.created_at + r.display_name}>“{r.body.length > 140 ? r.body.slice(0, 140) + '…' : r.body}”<cite>{r.display_name} · {r.rating} ★ · {ago(r.created_at)}</cite></blockquote>)}
    </Panel>
-   <Panel title="Newest students" sub="most recent sign-ups" action={<button className="btn btn-ghost btn-sm" onClick={() => go('users')}>See all</button>}>
+   <Panel title="Newest students" tone="green" sub="most recent sign-ups" action={<button className="btn btn-ghost btn-sm" onClick={() => go('users')}>See all</button>}>
     {d.userList.length ? <div className="adm-people">{d.userList.slice(0, 8).map(u => <Person key={u.id} u={u}/>)}</div> : <Empty text="No accounts yet."/>}
    </Panel>
   </div>
@@ -141,8 +141,8 @@ function Person({u}: {u: AdminUser}) {
  return <div className="adm-person"><span className="review-avatar" aria-hidden>{name.trim()[0]?.toUpperCase() || 'S'}</span><span className="adm-person-t"><b>{name}</b><small>{u.email && u.display_name ? u.email + ' · ' : ''}joined {ago(u.created_at)}</small></span><span className="adm-person-n">{u.tests_done} test{u.tests_done === 1 ? '' : 's'}</span></div>;
 }
 
-function Panel({title, sub, action, children}: {title: string; sub?: string; action?: React.ReactNode; children: React.ReactNode}) {
- return <section className="card adm-panel"><div className="adm-panel-head"><div><h2>{title}</h2>{sub && <span className="muted">{sub}</span>}</div>{action}</div>{children}</section>;
+function Panel({title, sub, action, tone, children}: {title: string; sub?: string; action?: React.ReactNode; tone: string; children: React.ReactNode}) {
+ return <section className={'card adm-panel t-' + tone}><div className="adm-panel-head"><div><h2>{title}</h2>{sub && <span className="muted">{sub}</span>}</div>{action}</div>{children}</section>;
 }
 function Empty({text}: {text: string}) {return <p className="muted adm-empty">{text}</p>;}
 

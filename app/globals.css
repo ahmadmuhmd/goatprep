@@ -1090,3 +1090,42 @@ section.stats,section.features-tabs,section.reviews-dark,section.faq,section.cta
  .adm-subs button{flex:1;justify-content:center;padding:0 10px}
  .adm-select{flex:1}
 }
+
+/* ===== Admin center: colour-coded sections and one clear font ===== */
+.adm{--c-green:#127A4E;--c-blue:#2F6FD6;--c-violet:#7A56D6;--c-amber:#D9921A;--c-teal:#14917F;--c-coral:#DE5F3B;font-family:var(--font-ui);font-size:16px}
+[data-theme=dark] .adm{--c-green:#3DB57F;--c-blue:#6FA2FF;--c-violet:#A58BFF;--c-amber:#F0B550;--c-teal:#3FC8B3;--c-coral:#FF8B66}
+.adm .t-green{--tone:var(--c-green)}.adm .t-blue{--tone:var(--c-blue)}.adm .t-violet{--tone:var(--c-violet)}
+.adm .t-amber{--tone:var(--c-amber)}.adm .t-teal{--tone:var(--c-teal)}.adm .t-coral{--tone:var(--c-coral)}
+.adm h1,.adm h2,.adm b,.adm .adm-kpi b,.adm .adm-readout b,.adm .eyebrow-i{font-family:var(--font-ui);font-style:normal;letter-spacing:-.005em}
+.adm h1,.adm h2{font-weight:800}
+.adm .adm-kpi b{font-weight:800;font-size:34px;letter-spacing:-.02em}
+.adm .adm-readout b{font-weight:800;font-size:19px}
+.adm-hero{padding:22px 26px;border-radius:26px;background:linear-gradient(120deg,#0C5A3B 0%,#127A4E 55%,#14917F 100%);color:#fff;margin-bottom:20px;box-shadow:0 18px 36px -22px rgba(12,90,59,.7)}
+.adm-hero h1{color:#fff}
+.adm-hero .eyebrow-i{color:rgba(255,255,255,.78);font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.adm-hero .muted{color:rgba(255,255,255,.8)}
+.adm-hero .btn-soft{background:rgba(255,255,255,.18);color:#fff}
+.adm-hero .btn-soft:hover{background:rgba(255,255,255,.28)}
+.adm-kpi{background:color-mix(in srgb,var(--tone,var(--green)) 9%,var(--card));border-color:color-mix(in srgb,var(--tone,var(--green)) 28%,var(--line));border-top:4px solid var(--tone,var(--green))}
+.adm-kpi-ico{background:color-mix(in srgb,var(--tone,var(--green)) 18%,var(--card));color:var(--tone,var(--green))}
+.adm-kpi-label{color:var(--ink);opacity:.78;font-weight:700}
+.adm-kpi small{color:var(--muted);font-size:13px}
+.adm-panel{border-top:4px solid var(--tone,var(--green))}
+.adm-panel-head h2{display:flex;align-items:center;gap:9px;font-size:20px}
+.adm-panel-head h2::before{content:'';width:10px;height:10px;border-radius:50%;background:var(--tone,var(--green));flex:none}
+.adm-panel-head .muted{font-size:13.5px;margin-left:19px}
+.adm-bar{fill:var(--tone,var(--green));opacity:.85}
+.adm-track{background:color-mix(in srgb,var(--tone,var(--green)) 14%,var(--sunk))}
+.adm-track i{background:var(--tone,var(--green))}
+.adm-row{font-size:14.5px}
+.adm-row b em{font-size:12.5px}
+.adm-table th{color:var(--tone,var(--muted));font-size:12px}
+.adm-table td{font-size:14.5px}
+.adm-users th{color:var(--c-green)}
+.adm-users tbody tr:hover,.adm-users tbody tr.open{background:color-mix(in srgb,var(--c-green) 9%,var(--card))}
+.adm-quote{background:color-mix(in srgb,var(--c-amber) 12%,var(--card));border-left:4px solid var(--c-amber)}
+.adm-subs{background:color-mix(in srgb,var(--c-green) 8%,var(--sunk))}
+.adm-person .review-avatar{background:color-mix(in srgb,var(--tone,var(--c-green)) 20%,var(--card));color:var(--tone,var(--c-green))}
+.adm-tag{background:color-mix(in srgb,var(--c-amber) 22%,var(--card));color:var(--c-amber)}
+.adm-warn{border-left:5px solid var(--c-amber)}
+@media (max-width:860px){.adm-hero{padding:18px 18px;border-radius:22px}.adm .adm-kpi b{font-size:28px}}
