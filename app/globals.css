@@ -980,6 +980,14 @@ section.stats,section.features-tabs,section.reviews-dark,section.faq,section.cta
 .shot-slide.on{opacity:1;visibility:visible;transition:opacity .45s var(--ease)}
 .shot-caption{margin-top:6px}
 
-/* ===== phone: the tab pill shrinks away into the bottom edge on scroll down (Jerry's orb stays) ===== */
-.glass-pill{transform-origin:50% 100%;transition:transform .45s cubic-bezier(.4,0,.2,1),opacity .3s,visibility 0s}
-.tabbar.tabs-hidden .glass-pill{transform:translateY(calc(100% + 40px + env(safe-area-inset-bottom))) scale(.35);opacity:0;pointer-events:none;visibility:hidden;transition:transform .45s cubic-bezier(.4,0,.2,1),opacity .3s .1s,visibility 0s .45s}
+/* stack shuffle: front card flies off, the next rises from the stack, back edges step forward */
+.shot-win.shot-in{animation:shotIn .65s cubic-bezier(.2,.9,.3,1.15) both}
+.shot-win.shot-out{position:absolute;inset:0;z-index:4;pointer-events:none;animation:shotOut .6s cubic-bezier(.5,0,.8,.4) forwards}
+.shot-back.b1{animation:backB1 .65s cubic-bezier(.2,.9,.3,1) both}
+.shot-back.b2{animation:backB2 .65s cubic-bezier(.2,.9,.3,1) both}
+.shot-back.b3{animation:backB3 .65s cubic-bezier(.2,.9,.3,1) both}
+@keyframes shotIn{from{transform:translateY(12px) scale(.94)}to{transform:none}}
+@keyframes shotOut{from{transform:none;opacity:1}to{transform:translate(18%,-14%) rotate(9deg) scale(.96);opacity:0}}
+@keyframes backB1{from{transform:translateY(24px) scale(.88)}to{transform:translateY(12px) scale(.94)}}
+@keyframes backB2{from{transform:translateY(36px) scale(.82)}to{transform:translateY(24px) scale(.88)}}
+@keyframes backB3{from{transform:translateY(48px) scale(.76);opacity:0}to{transform:translateY(36px) scale(.82);opacity:1}}

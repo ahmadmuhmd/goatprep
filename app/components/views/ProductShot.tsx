@@ -1,33 +1,42 @@
 "use client";
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 
 const SLIDES = ['Answer eliminator', 'Built-in Desmos', 'Highlights & notes', 'Instant score report'];
 /** One edge colour per slide: the cards stacked behind the front one show the next slides' colours. */
 const EDGE = ['#127A4E', '#E8B93B', '#5B8DE8', '#E8743B'];
 
-/** Floating preview of the test app that cycles through its features. */
+/** Floating preview of the test app. Slides shuffle like a deck: the front card flies off, the next one rises from the stack. */
 export default function ProductShot() {
- const [i, setI] = useState(0);
- useEffect(() => {const t = setInterval(() => setI(n => (n + 1) % SLIDES.length), 4200); return () => clearInterval(t);}, []);
- const math = i === 1;
+ const [i, setI] = useState(0), [prev, setPrev] = useState<number | null>(null), cur = useRef(0);
+ useEffect(() => {
+  const t = setInterval(() => {const n = cur.current; cur.current = (n + 1) % SLIDES.length; setPrev(n); setI(cur.current);}, 4200);
+  return () => clearInterval(t);
+ }, []);
+ useEffect(() => {if (prev === null) return; const t = setTimeout(() => setPrev(null), 700); return () => clearTimeout(t);}, [prev]);
  return <div className="shot" aria-hidden>
   <div className="shot-float">
    <div className="shot-stack">
-   {[3, 2, 1].map(k => {const c = EDGE[(i + k) % EDGE.length]; return <span key={k} className={'shot-back b' + k} style={{borderColor: c, background: `color-mix(in srgb, ${c} 14%, var(--paper))`}}/>;})}
-   <div className="shot-win">
-    <div className="shot-head"><span>{i === 3 ? 'Practice Test 1 · Score Details' : math ? 'Section 2, Module 1: Math' : 'Section 1, Module 1: Reading and Writing'}</span><b>{i === 3 ? '' : math ? '34:12' : '31:39'}</b><span/></div>
-    <div className="shot-dash"/>
-    <div className="shot-stage">
-     {[<RW key={0}/>, <MathSlide key={1}/>, <Notes key={2}/>, <Score key={3}/>].map((el, n) => <div key={n} className={'shot-slide' + (n === i ? ' on' : '')}>{el}</div>)}
-    </div>
-    <div className="shot-foot">{i === 3 ? <span>98 questions reviewed</span> : <span>Question {math ? 7 : 4} of {math ? 22 : 27}</span>}<em>{i === 3 ? 'Review' : 'Next'}</em></div>
-   </div>
+    {[3, 2, 1].map(k => {const c = EDGE[(i + k) % EDGE.length]; return <span key={i + '-' + k} className={'shot-back b' + k} style={{borderColor: c, background: `color-mix(in srgb, ${c} 14%, var(--paper))`}}/>;})}
+    <Win key={'in' + i} i={i} cls="shot-in"/>
+    {prev !== null && <Win key={'out' + prev} i={prev} cls="shot-out"/>}
    </div>
   </div>
   <div className="shot-caption">
    <b key={i}>{SLIDES[i]}</b>
    <span className="shot-dots">{SLIDES.map((s, n) => <i key={s} className={n === i ? 'on' : ''}/>)}</span>
   </div>
+ </div>;
+}
+
+function Win({i, cls}: {i: number; cls: string}) {
+ const math = i === 1;
+ return <div className={'shot-win ' + cls}>
+  <div className="shot-head"><span>{i === 3 ? 'Practice Test 1 · Score Details' : math ? 'Section 2, Module 1: Math' : 'Section 1, Module 1: Reading and Writing'}</span><b>{i === 3 ? '' : math ? '34:12' : '31:39'}</b><span/></div>
+  <div className="shot-dash"/>
+  <div className="shot-stage">
+   {[<RW key={0}/>, <MathSlide key={1}/>, <Notes key={2}/>, <Score key={3}/>].map((el, n) => <div key={n} className={'shot-slide' + (n === i ? ' on' : '')}>{el}</div>)}
+  </div>
+  <div className="shot-foot">{i === 3 ? <span>98 questions reviewed</span> : <span>Question {math ? 7 : 4} of {math ? 22 : 27}</span>}<em>{i === 3 ? 'Review' : 'Next'}</em></div>
  </div>;
 }
 
